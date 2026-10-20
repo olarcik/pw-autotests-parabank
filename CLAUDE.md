@@ -31,7 +31,6 @@ src/
 │   ├── integrations/   # email/OTP and other external services
 │   └── domains/<domain>/   # api.ts, data.ts, interfaces.ts, utils.ts per business domain
 ├── pages/
-│   ├── helperBase.ts   # base class for all page objects
 │   ├── admin/          # <feature>Page.ts
 │   ├── client/         # <feature>Page.ts
 │   └── onboarding/     # <feature>Page.ts
@@ -51,14 +50,15 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 ### Tests
 - Import `test` and `expect` from `src/tests/baseTest.ts`, **not** from `@playwright/test`.
 - File names: `<feature>.spec.ts` (kebab-case), placed in the folder matching the app area.
-- Use page-object fixtures (`async ({ mainPage, loginPage }) => ...`) instead of `new XPage(page)` inside tests.
+- Use page-object fixtures (`async ({ mainPage }) => ...`) instead of `new XPage(page)` inside tests.
 - Use web-first assertions (`await expect(locator).toBeVisible()`); no `waitForTimeout` or hard sleeps.
 - Tests must be independent and runnable in parallel (`fullyParallel: true`). Create the data a test needs; don't rely on another test's state.
 - Use `test.step()` for multi-step flows to keep reports readable.
 
 ### Page objects
 - One class per page/feature: `src/pages/<area>/<feature>Page.ts`, class name `<Feature>Page`.
-- Extend `HelperBase`; declare locators as `readonly` fields initialised in the constructor.
+- Standalone classes (no base class): take `page: Page` in the constructor and declare `page` and locators as `readonly` fields initialised there.
+- Follow the structure template strictly — don't add folders, base classes, or helpers that aren't in it.
 - Prefer user-facing locators: `getByRole`, `getByLabel`, `getByText`, `getByTestId`. Avoid CSS/XPath unless there is no alternative.
 - Page objects expose actions (`login(user)`, `openAccount(type)`) — assertions belong in tests.
 - Register every new page object as a fixture in `baseTest.ts`.
