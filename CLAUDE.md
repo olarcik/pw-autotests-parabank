@@ -31,15 +31,10 @@ src/
 │   ├── integrations/   # email/OTP and other external services
 │   └── domains/<domain>/   # api.ts, data.ts, interfaces.ts, utils.ts per business domain
 ├── pages/
-│   ├── admin/          # <feature>Page.ts
-│   ├── client/         # <feature>Page.ts
-│   └── onboarding/     # <feature>Page.ts
+│   └── client/         # <feature>Page.ts
 └── tests/
-    ├── baseTest.ts     # extended `test` with page-object and auth fixtures
-    ├── admin/{bank-menu-items,compliance-menu-items,top-bottom-menu-items}/
-    ├── client/
-    ├── cross-app/      # flows spanning several apps
-    └── onboarding/
+    ├── baseTest.ts     # extended `test` with page-object fixtures (generated from pagesMap)
+    └── client/
 files/uploads/          # input files for upload tests
 files/downloads/        # download output (git-ignored)
 storageStates/          # saved auth sessions, created at runtime (git-ignored)
@@ -53,7 +48,14 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 - Use page-object fixtures (`async ({ mainPage }) => ...`) instead of `new XPage(page)` inside tests.
 - Use web-first assertions (`await expect(locator).toBeVisible()`); no `waitForTimeout` or hard sleeps.
 - Tests must be independent and runnable in parallel (`fullyParallel: true`). Create the data a test needs; don't rely on another test's state.
-- Use `test.step()` for multi-step flows to keep reports readable.
+- Use `test.step()` for multi-step flows to keep reports readable (steps are also sent to Qase).
+- Link each test to its Qase case with `qase.id(<id>)` as the first line of the test body (`qase` is exported from `baseTest.ts`). Don't use the `qase(id, 'title')` title wrapper — it fails the `playwright/valid-title` lint rule. Optional metadata: `qase.fields({ severity, priority, layer })`, `qase.suite()`, `qase.attach()`, `qase.ignore()`.
+
+### Qase TestOps reporting
+- Reporter `playwright-qase-reporter` is configured in `playwright.config.ts`, alongside `list` and `html`.
+- Controlled by env: `QASE_MODE` (`off` by default; `testops` sends results, `report` writes a local JSON report to `build/qase-report/`), `QASE_TESTOPS_PROJECT`, `QASE_TESTOPS_API_TOKEN`. Any other `QASE_*` variable (e.g. `QASE_TESTOPS_RUN_TITLE`, `QASE_TESTOPS_PLAN_ID`) is read by the reporter directly.
+- These are reporter-only, so they're not in `setup.ts`; keep `.env.example` and the CI `env:` block in sync.
+- CI: set repo variables `QASE_MODE=testops` and `QASE_TESTOPS_PROJECT`, and secret `QASE_TESTOPS_API_TOKEN`.
 
 ### Page objects
 - One class per page/feature: `src/pages/<area>/<feature>Page.ts`, class name `<Feature>Page`.
@@ -61,12 +63,12 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 - Follow the structure template strictly — don't add folders, base classes, or helpers that aren't in it.
 - Prefer user-facing locators: `getByRole`, `getByLabel`, `getByText`, `getByTestId`. Avoid CSS/XPath unless there is no alternative.
 - Page objects expose actions (`login(user)`, `openAccount(type)`) — assertions belong in tests.
-- Register every new page object as a fixture in `baseTest.ts`.
+- Register every new page object by adding it to `pagesMap` in `baseTest.ts` — fixtures and their types are generated from it.
 
 ### Data & configuration
 - Environment values come from `.env` (loaded by `playwright.config.ts` via dotenv). Access them through `src/common/data/setup.ts`, never `process.env` directly in tests or pages.
 - When adding a variable, update `.env.example`, `setup.ts`, and the `env:` block in `.github/workflows/playwright.yml`.
-- Never commit credentials or `.env`. Secrets in CI come from GitHub Actions secrets: `CLIENT_USERNAME`, `CLIENT_PASSWORD`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`.
+- Never commit credentials or `.env`. Secrets in CI come from GitHub Actions secrets: `CLIENT_USERNAME`, `CLIENT_PASSWORD`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `QASE_TESTOPS_API_TOKEN`.
 - Generate unique data (usernames, emails) with helpers in `src/common/utils/`, not hard-coded values.
 
 ### Code style

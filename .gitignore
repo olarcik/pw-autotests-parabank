@@ -8,3 +8,4 @@ node_modules/
 /storageStates/
 /files/downloads/*
 !/files/downloads/.gitkeep
+/build/qase-report/
