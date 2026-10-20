@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "qase": {
+      "command": "node",
+      "args": [
+        "--env-file-if-exists=.env",
+        "-e",
+        "process.env.QASE_API_TOKEN ??= process.env.QASE_TESTOPS_API_TOKEN; import('@qase/mcp-server/build/index.js')"
+      ]
+    },
+    "playwright": {
+      "command": "node",
+      "args": [
+        "node_modules/@playwright/mcp/cli.js",
+        "--browser=chrome",
+        "--isolated",
+        "--output-dir=.playwright-mcp"
+      ]
+    }
+  }
+}

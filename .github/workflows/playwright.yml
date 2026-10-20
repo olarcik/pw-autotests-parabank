@@ -19,6 +19,10 @@ jobs:
       CLIENT_PASSWORD: ${{ secrets.CLIENT_PASSWORD }}
       ADMIN_USERNAME: ${{ secrets.ADMIN_USERNAME }}
       ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+      QASE_MODE: ${{ vars.QASE_MODE || 'off' }}
+      QASE_TESTOPS_PROJECT: ${{ vars.QASE_TESTOPS_PROJECT }}
+      QASE_TESTOPS_API_TOKEN: ${{ secrets.QASE_TESTOPS_API_TOKEN }}
+      QASE_TESTOPS_RUN_TITLE: GitHub Actions #${{ github.run_number }} (${{ github.ref_name }})
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

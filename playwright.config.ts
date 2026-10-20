@@ -22,7 +22,31 @@ export default defineConfig({
   /* Opt out of parallel tests on CI. */
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'html',
+  reporter: [
+    ['list'],
+    ['html', { open: 'never' }],
+    /* Qase TestOps — enabled with QASE_MODE=testops. Other QASE_* variables (run title, plan ID, etc.) are read by the reporter directly. */
+    [
+      'playwright-qase-reporter',
+      {
+        mode: process.env.QASE_MODE || 'off',
+        testops: {
+          api: {
+            token: process.env.QASE_TESTOPS_API_TOKEN,
+          },
+          project: process.env.QASE_TESTOPS_PROJECT,
+          uploadAttachments: true,
+        },
+        framework: {
+          browser: {
+            addAsParameter: true,
+            parameterName: 'Browser',
+          },
+          markAsFlaky: true,
+        },
+      },
+    ],
+  ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('')`. */

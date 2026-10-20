@@ -15,12 +15,15 @@
   "type": "commonjs",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/mcp": "0.0.83",
     "@playwright/test": "^1.61.1",
+    "@qase/mcp-server": "^3.0.1",
     "@types/node": "^26.1.1",
     "dotenv": "^18.0.8",
     "eslint": "^10.13.0",
     "eslint-plugin-playwright": "^2.12.1",
     "husky": "^9.1.7",
+    "playwright-qase-reporter": "^2.7.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.71.2"
   }
