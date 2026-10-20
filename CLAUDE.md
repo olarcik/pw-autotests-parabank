@@ -56,6 +56,8 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 - Controlled by env: `QASE_MODE` (`off` by default; `testops` sends results, `report` writes a local JSON report to `build/qase-report/`), `QASE_TESTOPS_PROJECT`, `QASE_TESTOPS_API_TOKEN`. Any other `QASE_*` variable (e.g. `QASE_TESTOPS_RUN_TITLE`, `QASE_TESTOPS_PLAN_ID`) is read by the reporter directly.
 - These are reporter-only, so they're not in `setup.ts`; keep `.env.example` and the CI `env:` block in sync.
 - CI: set repo variables `QASE_MODE=testops` and `QASE_TESTOPS_PROJECT`, and secret `QASE_TESTOPS_API_TOKEN`.
+- Claude Code: the `playwright` MCP server (`@playwright/mcp`, headed Chrome, output in `.playwright-mcp/`) with the `playwright-skill` skill is for exploring pages, building locators and debugging; finished work is always plain specs verified with `npx playwright test`.
+- Claude Code: the `qase` MCP server (`.mcp.json`, reuses `QASE_TESTOPS_API_TOKEN` from `.env`) and the `qase-skill` skill (`.claude/skills/qase-skill/SKILL.md`) manage cases, runs and defects directly.
 
 ### Page objects
 - One class per page/feature: `src/pages/<area>/<feature>Page.ts`, class name `<Feature>Page`.
