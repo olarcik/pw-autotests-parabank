@@ -33,8 +33,8 @@ jobs:
       - name: Type check
         run: npm run typecheck
 
-  e2e:
-    name: Playwright tests in Docker
+  ui:
+    name: UI tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
     # Passed into the playwright-tests container by docker-compose.yml; BASE_URL is set there to the parabank service.
@@ -45,7 +45,9 @@ jobs:
       CLIENT_PASSWORD: ${{ secrets.CLIENT_PASSWORD }}
       ADMIN_USERNAME: ${{ secrets.ADMIN_USERNAME }}
       ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
-      QASE_MODE: ${{ vars.QASE_MODE || 'off' }}
+      # Qase is opt-in: results are sent only when QASE_MODE=testops and both the project and the token
+      # are configured (secrets are not available, e.g., to PRs from forks). Anything else runs with "off".
+      QASE_MODE: ${{ vars.QASE_MODE == 'testops' && vars.QASE_TESTOPS_PROJECT != '' && secrets.QASE_TESTOPS_API_TOKEN != '' && 'testops' || 'off' }}
       QASE_TESTOPS_PROJECT: ${{ vars.QASE_TESTOPS_PROJECT }}
       QASE_TESTOPS_API_TOKEN: ${{ secrets.QASE_TESTOPS_API_TOKEN }}
       QASE_TESTOPS_RUN_TITLE: GitHub Actions #${{ github.run_number }} (${{ github.ref_name }})

@@ -82,7 +82,7 @@ When upgrading Playwright, bump `PLAYWRIGHT_VERSION` in `Dockerfile` too; the im
 (and manually from the Actions tab), with two parallel jobs:
 
 - **Lint and type check** — `npm ci`, `npm run lint`, `npm run typecheck`.
-- **Playwright tests in Docker** — `npm run docker:test`, the same command as locally. The HTML report and
+- **UI tests** — `npm run docker:test`, the same command as locally. The HTML report and
   test results are uploaded as the `playwright-report` artifact even when tests fail.
 
 A new push to the same branch cancels the run still in progress. The workflow has read-only repository permissions.
@@ -90,4 +90,6 @@ A new push to the same branch cancels the run still in progress. The workflow ha
 Optional configuration (Settings → Secrets and variables → Actions):
 
 - variables: `ENV`, `TENANT`, `QASE_MODE` (`testops` to send results to Qase), `QASE_TESTOPS_PROJECT`;
+  results go to Qase only when `QASE_MODE=testops`, `QASE_TESTOPS_PROJECT` and the `QASE_TESTOPS_API_TOKEN`
+  secret are all set — otherwise the job runs with `QASE_MODE=off`;
 - secrets: `CLIENT_USERNAME`, `CLIENT_PASSWORD`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `QASE_TESTOPS_API_TOKEN`.
