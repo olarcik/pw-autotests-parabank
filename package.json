@@ -7,6 +7,10 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "report": "playwright show-report",
+    "docker:up": "docker compose up -d --wait",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f --tail=200 parabank",
+    "test:docker": "npm run docker:up && playwright test",
     "prepare": "husky || true"
   },
   "keywords": [],
