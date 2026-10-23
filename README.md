@@ -1,6 +1,6 @@
 # pw-autotests-parabank
 
-[![E2E Tests](https://github.com/olarcik/pw-autotests-parabank/actions/workflows/e2e.yml/badge.svg?branch=main)](https://github.com/olarcik/pw-autotests-parabank/actions/workflows/e2e.yml)
+[![Playwright Tests](https://github.com/olarcik/pw-autotests-parabank/actions/workflows/playwright-tests.yml/badge.svg?branch=main)](https://github.com/olarcik/pw-autotests-parabank/actions/workflows/playwright-tests.yml)
 
 ## Running locally with Docker
 
@@ -60,17 +60,17 @@ npm run docker:test
 ```
 
 It builds the test image from `Dockerfile` (based on `mcr.microsoft.com/playwright`, with all browsers),
-starts ParaBank, waits until it is `healthy`, runs the whole suite in the `e2e` service, and then removes
+starts ParaBank, waits until it is `healthy`, runs the whole suite in the `playwright-tests` service, and then removes
 the containers (`docker compose down`). The command exits with the tests' result: `0` when they pass, `1` otherwise.
 
-- The `e2e` service is in the Compose profile `tests`, so `npm run docker:up` still starts ParaBank alone.
+- The `playwright-tests` service is in the Compose profile `tests`, so `npm run docker:up` still starts ParaBank alone.
 - Inside the Compose network the tests use `BASE_URL=http://parabank:8080/parabank`: `localhost` there would be
   the test container itself, while `parabank` is the service name that Compose DNS resolves to the app container.
   `BASE_URL` from `.env` is ignored; the other variables (`QASE_*`, credentials) are passed through from `.env`.
 - `playwright-report/` and `test-results/` are mounted from the host, so after the run open the report with
   `npm run report`.
 - To pass Playwright arguments, run the service directly, e.g.
-  `docker compose --profile tests run --rm --build e2e npx playwright test --project=chromium`
+  `docker compose --profile tests run --rm --build playwright-tests npx playwright test --project=chromium`
   (then `npm run docker:down`).
 
 The base image version in `Dockerfile` must equal the `@playwright/test` version in `package-lock.json`.
@@ -78,7 +78,7 @@ When upgrading Playwright, bump `PLAYWRIGHT_VERSION` in `Dockerfile` too; the im
 
 ## CI
 
-[`.github/workflows/e2e.yml`](.github/workflows/e2e.yml) runs on every pull request and push to `main`
+[`.github/workflows/playwright-tests.yml`](.github/workflows/playwright-tests.yml) runs on every pull request and push to `main`
 (and manually from the Actions tab), with two parallel jobs:
 
 - **Lint and type check** — `npm ci`, `npm run lint`, `npm run typecheck`.

@@ -69,7 +69,7 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 
 ### Data & configuration
 - Environment values come from `.env` (loaded by `playwright.config.ts` via dotenv). Access them through `src/common/data/setup.ts`, never `process.env` directly in tests or pages.
-- When adding a variable, update `.env.example`, `setup.ts`, the `e2e` service `environment:` in `docker-compose.yml`, and the `env:` block of the `e2e` job in `.github/workflows/e2e.yml`.
+- When adding a variable, update `.env.example`, `setup.ts`, the `playwright-tests` service `environment:` in `docker-compose.yml`, and the `env:` block of the `e2e` job in `.github/workflows/playwright-tests.yml`.
 - Never commit credentials or `.env`. Secrets in CI come from GitHub Actions secrets: `CLIENT_USERNAME`, `CLIENT_PASSWORD`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `QASE_TESTOPS_API_TOKEN`.
 - Generate unique data (usernames, emails) with helpers in `src/common/utils/`, not hard-coded values.
 
@@ -80,9 +80,9 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 
 ## CI
 
-GitHub Actions — `.github/workflows/e2e.yml` runs on push/PR to `main` and manually, with two parallel jobs:
+GitHub Actions — `.github/workflows/playwright-tests.yml` runs on push/PR to `main` and manually, with two parallel jobs:
 - `checks`: `npm ci` → lint → typecheck.
-- `e2e`: `npm run docker:test` (same as locally: builds the `Dockerfile` image, starts ParaBank in Compose, runs the suite in the `e2e` container) → upload `playwright-report/` and `test-results/` as an artifact (always).
+- `e2e`: `npm run docker:test` (same as locally: builds the `Dockerfile` image, starts ParaBank in Compose, runs the suite in the `playwright-tests` container) → upload `playwright-report/` and `test-results/` as an artifact (always).
 
 The `Dockerfile` base image version must equal `@playwright/test` in `package-lock.json`; bump both together.
 

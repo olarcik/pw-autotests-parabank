@@ -1,4 +1,4 @@
-name: E2E Tests
+name: Playwright Tests
 
 on:
   push:
@@ -37,7 +37,7 @@ jobs:
     name: Playwright tests in Docker
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # Passed into the e2e container by docker-compose.yml; BASE_URL is set there to the parabank service.
+    # Passed into the playwright-tests container by docker-compose.yml; BASE_URL is set there to the parabank service.
     env:
       ENV: ${{ vars.ENV || 'dev' }}
       TENANT: ${{ vars.TENANT || 'parabank' }}

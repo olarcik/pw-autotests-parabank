@@ -5,7 +5,7 @@ services:
     # docker inspect --format "{{index .RepoDigests 0}}" parasoft/parabank:latest
     image: parasoft/parabank@sha256:0de7bbc8eb0f7ba61579421df1fc834fd7f559c08bf295597c0f9081e0a906e9
     # Host port is configurable (PARABANK_PORT in .env) in case 8080 is taken on the host.
-    # The container port stays 8080; the e2e service and the healthcheck use it directly.
+    # The container port stays 8080; the playwright-tests service and the healthcheck use it directly.
     ports:
       - "${PARABANK_PORT:-8080}:8080"
     # The image has no curl or wget, so the check sends raw HTTP requests through bash's /dev/tcp.
@@ -31,7 +31,7 @@ services:
       retries: 3
 
   # Playwright tests (see Dockerfile). Started only with `--profile tests`, e.g. `npm run docker:test`.
-  e2e:
+  playwright-tests:
     profiles: [tests]
     build: .
     depends_on:
@@ -42,8 +42,8 @@ services:
     init: true
     ipc: host
     environment:
-      # Inside the Compose network `localhost` is the e2e container itself; the app is reached by its
-      # service name on the container port, independent of the published host port.
+      # Inside the Compose network `localhost` is the playwright-tests container itself; the app is
+      # reached by its service name on the container port, independent of the published host port.
       BASE_URL: http://parabank:8080/parabank
       # The rest is taken from the shell or .env (locally) and from the job env (CI); unset stays empty.
       CI: ${CI:-}
