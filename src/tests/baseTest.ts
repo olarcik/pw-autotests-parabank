@@ -1,8 +1,10 @@
 import { test, Page } from '@playwright/test';
 import { MainPage } from '../pages/client/mainPage';
+import { RegisterPage } from '../pages/client/registerPage';
 
 const pagesMap = {
   mainPage: MainPage,
+  registerPage: RegisterPage,
   // add more page mappings here as needed
 };
 
