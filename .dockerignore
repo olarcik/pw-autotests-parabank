@@ -1,0 +1,15 @@
+# Keep the build context small and free of secrets; the Dockerfile copies only what tests need.
+node_modules/
+.env
+.git/
+.github/
+.husky/
+.claude/
+.playwright-mcp/
+playwright-report/
+test-results/
+blob-report/
+build/
+storageStates/
+files/downloads/*
+!files/downloads/.gitkeep
