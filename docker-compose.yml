@@ -4,8 +4,10 @@ services:
     # To update: docker pull parasoft/parabank:latest, then copy the new digest from
     # docker inspect --format "{{index .RepoDigests 0}}" parasoft/parabank:latest
     image: parasoft/parabank@sha256:0de7bbc8eb0f7ba61579421df1fc834fd7f559c08bf295597c0f9081e0a906e9
+    # Host port is configurable (PARABANK_PORT in .env) in case 8080 is taken on the host.
+    # The container port stays 8080; the playwright-tests service and the healthcheck use it directly.
     ports:
-      - "8080:8080"
+      - "${PARABANK_PORT:-8080}:8080"
     # The image has no curl or wget, so the check sends raw HTTP requests through bash's /dev/tcp.
     # A fresh container redirects every page to initializeDB.htm until the database is created;
     # the check calls it once in that case, so `docker compose up --wait` returns a ready app.
@@ -27,3 +29,35 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+
+  # Playwright tests (see Dockerfile). Started only with `--profile tests`, e.g. `npm run docker:test`.
+  playwright-tests:
+    profiles: [tests]
+    build: .
+    depends_on:
+      parabank:
+        condition: service_healthy
+    # Recommended by Playwright for Docker: init reaps browser child processes,
+    # ipc: host gives Chromium enough shared memory so it doesn't crash.
+    init: true
+    ipc: host
+    environment:
+      # Inside the Compose network `localhost` is the playwright-tests container itself; the app is
+      # reached by its service name on the container port, independent of the published host port.
+      BASE_URL: http://parabank:8080/parabank
+      # The rest is taken from the shell or .env (locally) and from the job env (CI); unset stays empty.
+      CI: ${CI:-}
+      ENV: ${ENV:-dev}
+      TENANT: ${TENANT:-parabank}
+      CLIENT_USERNAME: ${CLIENT_USERNAME:-}
+      CLIENT_PASSWORD: ${CLIENT_PASSWORD:-}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      QASE_MODE: ${QASE_MODE:-off}
+      QASE_TESTOPS_PROJECT: ${QASE_TESTOPS_PROJECT:-}
+      QASE_TESTOPS_API_TOKEN: ${QASE_TESTOPS_API_TOKEN:-}
+      QASE_TESTOPS_RUN_TITLE: ${QASE_TESTOPS_RUN_TITLE:-}
+    # Reports are written to the host, so they are available after the container is removed.
+    volumes:
+      - ./playwright-report:/app/playwright-report
+      - ./test-results:/app/test-results

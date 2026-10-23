@@ -8,9 +8,10 @@
     "typecheck": "tsc --noEmit",
     "report": "playwright show-report",
     "docker:up": "docker compose up -d --wait",
-    "docker:down": "docker compose down",
+    "docker:down": "docker compose --profile tests down",
     "docker:logs": "docker compose logs -f --tail=200 parabank",
-    "test:docker": "npm run docker:up && playwright test",
+    "docker:test": "docker compose --profile tests up --build --attach playwright-tests --exit-code-from playwright-tests && npm run docker:down || (npm run docker:down && exit 1)",
+    "test:host-docker": "npm run docker:up && playwright test",
     "prepare": "husky || true"
   },
   "keywords": [],
