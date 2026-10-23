@@ -1,4 +1,5 @@
 import { Locator, Page } from "@playwright/test";
+import { URLS } from "../../common/data/setup";
 
 export class MainPage {
 
@@ -8,6 +9,7 @@ export class MainPage {
     readonly productsItem: Locator
     readonly locationsItem: Locator
     readonly adminPage: Locator
+    readonly registerLink: Locator
 
     constructor(page: Page){
         this.page = page
@@ -16,5 +18,14 @@ export class MainPage {
         this.productsItem = page.getByRole('link', {name: 'Products', exact: true})
         this.locationsItem = page.getByRole('link', {name: 'Locations', exact: true})
         this.adminPage = page.getByRole('link', {name: 'Admin Page', exact: true})
+        this.registerLink = page.getByRole('link', {name: 'Register', exact: true})
+    }
+
+    async open(){
+        await this.page.goto(URLS.client)
+    }
+
+    async openRegisterPage(){
+        await this.registerLink.click()
     }
 }
