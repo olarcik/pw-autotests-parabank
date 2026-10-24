@@ -74,7 +74,7 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 
 - Environment values come from `.env` (loaded by `playwright.config.ts` via dotenv). Access them through `src/common/data/setup.ts`, never `process.env` directly in tests or pages.
 - When adding a variable, update `.env.example`, `setup.ts`, the `playwright-tests` service `environment:` in `docker-compose.yml`, and the `env:` block of the `ui` job in `.github/workflows/playwright-tests.yml`.
-- Never commit credentials or `.env`. Secrets in CI come from GitHub Actions secrets: `CLIENT_USERNAME`, `CLIENT_PASSWORD`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `QASE_TESTOPS_API_TOKEN`.
+- Never commit credentials or `.env`. The only CI secret is `QASE_TESTOPS_API_TOKEN` (GitHub Actions secrets).
 - Generate unique data (usernames, emails) with helpers in `src/common/utils/`, not hard-coded values.
 
 ### Code style
