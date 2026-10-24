@@ -1,6 +1,6 @@
 import { expect, Locator, Page } from '@playwright/test';
 import { URLS } from '../../common/data/setup';
-import { User } from '../../common/interfaces/interface';
+import { User } from '../../common/domains/user/interfaces';
 
 export class RegisterPage {
   readonly page: Page;

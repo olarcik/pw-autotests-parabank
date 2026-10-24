@@ -33,7 +33,7 @@ src/
 │   ├── data/
 │   │   ├── setup.ts    # ENV, TENANT, BASE_URL, URLS — read from process.env
 │   │   └── test.ts     # shared static test values
-│   ├── interfaces/     # shared TypeScript types
+│   ├── interfaces/     # types shared by several domains (no barrel files)
 │   ├── utils/          # shared generators and helpers
 │   ├── integrations/   # email/OTP and other external services
 │   └── domains/<domain>/   # api.ts, data.ts, interfaces.ts, utils.ts per business domain
@@ -94,7 +94,7 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 
 - Formatting is owned by Prettier (`.prettierrc`: single quotes, semicolons, trailing commas, width 100, 2 spaces, LF; exclusions in `.prettierignore`). Run `npm run format` instead of formatting by hand; ESLint style rules that conflict with it are disabled by `eslint-config-prettier`.
 - TypeScript strict mode; no `any` unless justified.
-- Shared types go in `src/common/interfaces/`; domain-specific types in `src/common/domains/<domain>/interfaces.ts`.
+- Domain types live in `src/common/domains/<domain>/interfaces.ts` and are imported directly from there (relative path). `src/common/interfaces/` is only for types shared by several domains. Don't create re-export (barrel) files.
 - Keep files LF line endings (enforced by `.gitattributes` and Prettier).
 
 ## Docker
