@@ -6,6 +6,8 @@
     "test": "playwright test",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "report": "playwright show-report",
     "docker:up": "docker compose up -d --wait",
     "docker:down": "docker compose --profile tests down",
@@ -27,9 +29,11 @@
     "@types/node": "^26.1.1",
     "dotenv": "^18.0.8",
     "eslint": "^10.13.0",
+    "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-playwright": "^2.12.1",
     "husky": "^9.1.7",
     "playwright-qase-reporter": "^2.7.0",
+    "prettier": "^3.9.10",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.71.2"
   }

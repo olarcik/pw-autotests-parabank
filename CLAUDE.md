@@ -1,21 +1,28 @@
 # CLAUDE.md
 
-End-to-end UI/API test automation for **ParaBank** (https://parabank.parasoft.com/parabank) using Playwright + TypeScript.
+End-to-end UI/API test automation for **ParaBank** using Playwright + TypeScript. Tests run against a local ParaBank in Docker (image `parasoft/parabank`, pinned by digest in `docker-compose.yml`), not the public demo site.
 The framework is built incrementally: folders exist up front (kept with `.gitkeep`), and code is added as tests are written.
 
 ## Commands
 
 ```bash
-npm test                                   # all tests, all browsers
+npm test                                   # playwright test: all tests, all browsers (needs a running app)
 npx playwright test --project=chromium     # single browser
 npx playwright test src/tests/client       # single folder
 npx playwright test -g "login"             # by test title
-npm run lint                               # ESLint (typescript-eslint + eslint-plugin-playwright)
+npm run lint                               # ESLint (typescript-eslint + eslint-plugin-playwright + eslint-config-prettier)
 npm run typecheck                          # tsc --noEmit
+npm run format                             # prettier --write .
+npm run format:check                       # prettier --check .
 npm run report                             # open last HTML report
+npm run docker:up                          # start ParaBank in Compose and wait until healthy
+npm run docker:down                        # stop and remove containers (incl. the tests profile)
+npm run docker:logs                        # follow ParaBank logs
+npm run docker:test                        # build the test image, run the suite in Compose, clean up
+npm run test:host-docker                   # docker:up + playwright test on the host
 ```
 
-Before finishing any change, run `npm run lint` and `npm run typecheck`. The Husky pre-commit hook runs both and blocks the commit on failure — never bypass it with `--no-verify`.
+Before committing, run `npm run lint`, `npm run typecheck` and `npm run format:check`. The Husky pre-commit hook runs all three and blocks the commit on failure — never bypass it with `--no-verify`.
 
 ## Project structure
 
@@ -24,7 +31,7 @@ src/
 ├── common/
 │   ├── api/            # shared API transport (base.ts), re-exported from index.ts
 │   ├── data/
-│   │   ├── setup.ts    # ENV, TENANT, URLS, ROLES — read from process.env
+│   │   ├── setup.ts    # ENV, TENANT, BASE_URL, URLS — read from process.env
 │   │   └── test.ts     # shared static test values
 │   ├── interfaces/     # shared TypeScript types
 │   ├── utils/          # shared generators and helpers
@@ -43,23 +50,17 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 ## Conventions
 
 ### Tests
+
 - Import `test` and `expect` from `src/tests/baseTest.ts`, **not** from `@playwright/test`.
 - File names: `<feature>.spec.ts` (kebab-case), placed in the folder matching the app area.
 - Use page-object fixtures (`async ({ mainPage }) => ...`) instead of `new XPage(page)` inside tests.
 - Use web-first assertions (`await expect(locator).toBeVisible()`); no `waitForTimeout` or hard sleeps.
 - Tests must be independent and runnable in parallel (`fullyParallel: true`). Create the data a test needs; don't rely on another test's state.
 - Use `test.step()` for multi-step flows to keep reports readable (steps are also sent to Qase).
-- Link each test to its Qase case with `qase.id(<id>)` as the first line of the test body (`qase` is exported from `baseTest.ts`). Don't use the `qase(id, 'title')` title wrapper — it fails the `playwright/valid-title` lint rule. Optional metadata: `qase.fields({ severity, priority, layer })`, `qase.suite()`, `qase.attach()`, `qase.ignore()`.
-
-### Qase TestOps reporting
-- Reporter `playwright-qase-reporter` is configured in `playwright.config.ts`, alongside `list` and `html`.
-- Controlled by env: `QASE_MODE` (`off` by default; `testops` sends results, `report` writes a local JSON report to `build/qase-report/`), `QASE_TESTOPS_PROJECT`, `QASE_TESTOPS_API_TOKEN`. Any other `QASE_*` variable (e.g. `QASE_TESTOPS_RUN_TITLE`, `QASE_TESTOPS_PLAN_ID`) is read by the reporter directly.
-- These are reporter-only, so they're not in `setup.ts`; keep `.env.example` and the CI `env:` block in sync.
-- CI: set repo variables `QASE_MODE=testops` and `QASE_TESTOPS_PROJECT`, and secret `QASE_TESTOPS_API_TOKEN`.
-- Claude Code: the `playwright` MCP server (`@playwright/mcp`, headed Chrome, output in `.playwright-mcp/`) with the `playwright-skill` skill is for exploring pages, building locators and debugging; finished work is always plain specs verified with `npx playwright test`.
-- Claude Code: the `qase` MCP server (`.mcp.json`, reuses `QASE_TESTOPS_API_TOKEN` from `.env`) and the `qase-skill` skill (`.claude/skills/qase-skill/SKILL.md`) manage cases, runs and defects directly.
+- Link each test to its Qase case with `qase.id(<id>)` as the first line of the test body (`qase` is exported from `baseTest.ts`). The ID in `qase.id()` always equals the case ID in Qase. Don't use the `qase(id, 'title')` title wrapper — it fails the `playwright/valid-title` lint rule. Optional metadata: `qase.fields({ severity, priority, layer })`, `qase.suite()`, `qase.attach()`, `qase.ignore()`.
 
 ### Page objects
+
 - One class per page/feature: `src/pages/<area>/<feature>Page.ts`, class name `<Feature>Page`.
 - Standalone classes (no base class): take `page: Page` in the constructor and declare `page` and locators as `readonly` fields initialised there.
 - Follow the structure template strictly — don't add folders, base classes, or helpers that aren't in it.
@@ -68,23 +69,57 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 - Register every new page object by adding it to `pagesMap` in `baseTest.ts` — fixtures and their types are generated from it.
 
 ### Data & configuration
+
 - Environment values come from `.env` (loaded by `playwright.config.ts` via dotenv). Access them through `src/common/data/setup.ts`, never `process.env` directly in tests or pages.
 - When adding a variable, update `.env.example`, `setup.ts`, the `playwright-tests` service `environment:` in `docker-compose.yml`, and the `env:` block of the `ui` job in `.github/workflows/playwright-tests.yml`.
-- Never commit credentials or `.env`. Secrets in CI come from GitHub Actions secrets: `CLIENT_USERNAME`, `CLIENT_PASSWORD`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `QASE_TESTOPS_API_TOKEN`.
+- Never commit credentials or `.env`. The only CI secret is `QASE_TESTOPS_API_TOKEN` (GitHub Actions secrets).
 - Generate unique data (usernames, emails) with helpers in `src/common/utils/`, not hard-coded values.
 
+### Environment variables (`.env.example`)
+
+- `ENV`, `TENANT` — environment name and tenant (`setup.ts`; defaults `dev`, `parabank`).
+- `BASE_URL` — app URL for tests on the host (default `http://localhost:8080/parabank`).
+- `PARABANK_PORT` — host port of the ParaBank container (default `8080`; Compose only). Keep `BASE_URL` in sync.
+- `QASE_MODE` (`off` | `testops` | `report`), `QASE_TESTOPS_PROJECT`, `QASE_TESTOPS_API_TOKEN`, `QASE_TESTOPS_RUN_TITLE` — Qase reporter only, read in `playwright.config.ts` or by the reporter, not in `setup.ts`.
+- `CI` — set by the CI runner (retries, single worker, `forbidOnly`).
+
+### Formatting
+
+- VS Code fixes formatting on save (Prettier, settings in `.vscode/`; install the recommended `esbenp.prettier-vscode` extension).
+- The pre-commit hook and the CI `checks` job only check (`npm run format:check`) and never rewrite files.
+- If the check fails, run `npm run format` and commit the result.
+
 ### Code style
+
+- Formatting is owned by Prettier (`.prettierrc`: single quotes, semicolons, trailing commas, width 100, 2 spaces, LF; exclusions in `.prettierignore`). Run `npm run format` instead of formatting by hand; ESLint style rules that conflict with it are disabled by `eslint-config-prettier`.
 - TypeScript strict mode; no `any` unless justified.
 - Shared types go in `src/common/interfaces/`; domain-specific types in `src/common/domains/<domain>/interfaces.ts`.
-- Keep files LF line endings (enforced by `.gitattributes`).
+- Keep files LF line endings (enforced by `.gitattributes` and Prettier).
+
+## Docker
+
+See [`docker-compose.yml`](docker-compose.yml), [`Dockerfile`](Dockerfile) and README sections [Running tests in Docker](README.md#running-tests-in-docker) and [CI](README.md#ci).
+
+- `parabank` — the app, published on host port `${PARABANK_PORT:-8080}`; its healthcheck initializes the DB once, so `docker compose up --wait` returns a ready app.
+- `playwright-tests` — the test runner built from `Dockerfile`, in Compose profile `tests` (started only by `docker:test` / `--profile tests`). Inside the Compose network it uses `BASE_URL=http://parabank:8080/parabank`; `BASE_URL` from `.env` is ignored. Reports are mounted to `playwright-report/` and `test-results/`.
+- `PLAYWRIGHT_VERSION` in `Dockerfile` must equal `@playwright/test` in `package-lock.json`; bump both together (the image build fails on a mismatch).
+- Updating the pinned ParaBank image: `docker pull parasoft/parabank:latest`, get the digest with `docker inspect --format "{{index .RepoDigests 0}}" parasoft/parabank:latest`, and replace the `image:` digest in `docker-compose.yml`.
 
 ## CI
 
 GitHub Actions — `.github/workflows/playwright-tests.yml` runs on push/PR to `main` and manually, with two parallel jobs:
-- `checks`: `npm ci` → lint → typecheck.
-- `ui`: `npm run docker:test` (same as locally: builds the `Dockerfile` image, starts ParaBank in Compose, runs the suite in the `playwright-tests` container) → upload `playwright-report/` and `test-results/` as an artifact (always).
 
-The `Dockerfile` base image version must equal `@playwright/test` in `package-lock.json`; bump both together.
+- `checks`: `npm ci` → lint → typecheck → format:check.
+- `ui`: `npm run docker:test` (same as locally) → upload `playwright-report/` and `test-results/` as an artifact (always).
+
+Qase mode in `ui`: `QASE_MODE=testops` only when repo variable `QASE_MODE` is `testops` **and** variable `QASE_TESTOPS_PROJECT` and secret `QASE_TESTOPS_API_TOKEN` are both set; otherwise `off`. Optional variables `ENV`, `TENANT`.
+
+## Qase and Claude Code tooling
+
+- Reporter `playwright-qase-reporter` is configured in `playwright.config.ts`, alongside `list` and `html`. `QASE_MODE=report` writes a local JSON report to `build/qase-report/`.
+- MCP servers are defined in `.mcp.json`:
+  - `qase` (`@qase/mcp-server`, reuses `QASE_TESTOPS_API_TOKEN` from `.env`) with the `qase-skill` skill (`.claude/skills/qase-skill/SKILL.md`) — manage cases, runs and defects.
+  - `playwright` (`@playwright/mcp`, headed Chrome, output in `.playwright-mcp/`) with the `playwright-skill` skill (`.claude/skills/playwright-skill/SKILL.md`) — explore pages, build locators, debug. Finished work is always plain specs verified with `npx playwright test`.
 
 ## Git
 

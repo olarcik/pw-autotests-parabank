@@ -1,0 +1,9 @@
+node_modules
+playwright-report
+test-results
+build
+.playwright-mcp
+files
+package-lock.json
+# Local, untracked Claude Code settings
+.claude/settings.local.json

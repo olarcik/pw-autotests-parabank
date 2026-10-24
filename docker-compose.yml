@@ -7,7 +7,7 @@ services:
     # Host port is configurable (PARABANK_PORT in .env) in case 8080 is taken on the host.
     # The container port stays 8080; the playwright-tests service and the healthcheck use it directly.
     ports:
-      - "${PARABANK_PORT:-8080}:8080"
+      - '${PARABANK_PORT:-8080}:8080'
     # The image has no curl or wget, so the check sends raw HTTP requests through bash's /dev/tcp.
     # A fresh container redirects every page to initializeDB.htm until the database is created;
     # the check calls it once in that case, so `docker compose up --wait` returns a ready app.
@@ -49,10 +49,6 @@ services:
       CI: ${CI:-}
       ENV: ${ENV:-dev}
       TENANT: ${TENANT:-parabank}
-      CLIENT_USERNAME: ${CLIENT_USERNAME:-}
-      CLIENT_PASSWORD: ${CLIENT_PASSWORD:-}
-      ADMIN_USERNAME: ${ADMIN_USERNAME:-}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       QASE_MODE: ${QASE_MODE:-off}
       QASE_TESTOPS_PROJECT: ${QASE_TESTOPS_PROJECT:-}
       QASE_TESTOPS_API_TOKEN: ${QASE_TESTOPS_API_TOKEN:-}
