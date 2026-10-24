@@ -1,6 +1,7 @@
 import { test, expect, qase } from '../baseTest';
 import { generateUser } from '../../common/domains/user/data';
 import { RegisterPage } from '../../pages/client/registerPage';
+import { User } from '../../common/interfaces/interface';
 import type { Locator } from '@playwright/test';
 
 type RegisterLocator = {
@@ -22,6 +23,24 @@ const REQUIRED_FIELDS: { field: string; input: RegisterLocator; error: string }[
   { field: 'Password', input: 'passwordInput', error: 'Password is required.' },
   { field: 'Confirm', input: 'confirmPasswordInput', error: 'Password confirmation is required.' },
 ];
+
+// Checks every non-password field; password fields are asserted by each test as they differ
+const expectFormToKeepUserData = async (registerPage: RegisterPage, user: User) => {
+  await expect(registerPage.firstNameInput).toHaveValue(user.firstName);
+  await expect(registerPage.lastNameInput).toHaveValue(user.lastName);
+  await expect(registerPage.addressInput).toHaveValue(user.address.street);
+  await expect(registerPage.cityInput).toHaveValue(user.address.city);
+  await expect(registerPage.stateInput).toHaveValue(user.address.state);
+  await expect(registerPage.zipCodeInput).toHaveValue(user.address.zipCode);
+  await expect(registerPage.phoneInput).toHaveValue(user.phoneNumber);
+  await expect(registerPage.ssnInput).toHaveValue(user.ssn);
+  await expect(registerPage.usernameInput).toHaveValue(user.username);
+};
+
+const swapCase = (value: string) =>
+  [...value]
+    .map((char) => (char === char.toUpperCase() ? char.toLowerCase() : char.toUpperCase()))
+    .join('');
 
 test.describe('Registration', () => {
   test('Open Register page from Home page', async ({ page, mainPage, registerPage }) => {
@@ -146,5 +165,89 @@ test.describe('Registration', () => {
         await expect(registerPage.errorMessages).toHaveText([error]);
       });
     }
+  });
+
+  test('Entered values are kept after failed submit', async ({ page, registerPage }) => {
+    qase.id(9);
+    qase.fields({ severity: 'minor', priority: 'low', layer: 'e2e' });
+    const user = generateUser();
+    const mismatchedPassword = generateUser().password;
+
+    await test.step('Open the Register page and fill all fields with valid data, but enter a different value in Confirm', async () => {
+      await registerPage.open();
+      await registerPage.fillForm(user);
+      await registerPage.confirmPasswordInput.fill(mismatchedPassword);
+      await expectFormToKeepUserData(registerPage, user);
+      await expect(registerPage.passwordInput).toHaveValue(user.password);
+      await expect(registerPage.confirmPasswordInput).toHaveValue(mismatchedPassword);
+    });
+
+    await test.step('Click "Register"', async () => {
+      await registerPage.registerButton.click();
+      await expect(page).toHaveTitle(REGISTER_PAGE_TITLE);
+      await expect(registerPage.errorMessages).toHaveText(['Passwords did not match.']);
+    });
+
+    await test.step('Check field values', async () => {
+      await expectFormToKeepUserData(registerPage, user);
+      await expect(registerPage.passwordInput).toBeEmpty();
+      await expect(registerPage.confirmPasswordInput).toBeEmpty();
+    });
+  });
+
+  test('Mismatched passwords show error', async ({ page, mainPage, registerPage }) => {
+    qase.id(10);
+    qase.fields({ severity: 'major', priority: 'high', layer: 'e2e' });
+    const user = generateUser();
+    const mismatchedPassword = generateUser().password;
+
+    await test.step('Open the Register page and fill all fields with valid data', async () => {
+      await registerPage.open();
+      await registerPage.fillForm(user);
+      await expectFormToKeepUserData(registerPage, user);
+    });
+
+    await test.step('Enter different values in Password and Confirm', async () => {
+      await registerPage.passwordInput.fill(user.password);
+      await registerPage.confirmPasswordInput.fill(mismatchedPassword);
+      await expect(registerPage.passwordInput).toHaveValue(user.password);
+      await expect(registerPage.confirmPasswordInput).toHaveValue(mismatchedPassword);
+    });
+
+    await test.step('Click "Register"', async () => {
+      await registerPage.registerButton.click();
+      await expect(registerPage.confirmPasswordError).toHaveText('Passwords did not match.');
+      await expect(page).toHaveTitle(REGISTER_PAGE_TITLE);
+      await expect(mainPage.loginHeading).toBeVisible();
+    });
+  });
+
+  test('Password confirmation is case-sensitive', async ({ page, mainPage, registerPage }) => {
+    qase.id(11);
+    qase.fields({ severity: 'normal', priority: 'medium', layer: 'e2e' });
+    const user = generateUser();
+    // The prefix guarantees letters, so the case-swapped confirmation always differs
+    const password = `Pw${user.password}`;
+    const confirmPassword = swapCase(password);
+
+    await test.step('Open the Register page and fill all fields with valid data', async () => {
+      await registerPage.open();
+      await registerPage.fillForm(user);
+      await expectFormToKeepUserData(registerPage, user);
+    });
+
+    await test.step('Enter passwords that differ only in letter case', async () => {
+      await registerPage.passwordInput.fill(password);
+      await registerPage.confirmPasswordInput.fill(confirmPassword);
+      await expect(registerPage.passwordInput).toHaveValue(password);
+      await expect(registerPage.confirmPasswordInput).toHaveValue(confirmPassword);
+    });
+
+    await test.step('Click "Register"', async () => {
+      await registerPage.registerButton.click();
+      await expect(registerPage.confirmPasswordError).toHaveText('Passwords did not match.');
+      await expect(page).toHaveTitle(REGISTER_PAGE_TITLE);
+      await expect(mainPage.loginHeading).toBeVisible();
+    });
   });
 });

@@ -20,6 +20,7 @@ export class RegisterPage {
   readonly registerButton: Locator;
   readonly errorMessages: Locator;
   readonly phoneNumberError: Locator;
+  readonly confirmPasswordError: Locator;
 
   constructor(page: Page) {
     this.page = page;
@@ -43,6 +44,7 @@ export class RegisterPage {
     // Validation messages are plain spans with no role, rendered next to each input as <input id>.errors
     this.errorMessages = page.locator('#customerForm span.error');
     this.phoneNumberError = page.locator('[id="customer.phoneNumber.errors"]');
+    this.confirmPasswordError = page.locator('[id="repeatedPassword.errors"]');
   }
 
   async open() {
