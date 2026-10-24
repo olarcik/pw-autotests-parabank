@@ -21,6 +21,8 @@ export class RegisterPage {
   readonly errorMessages: Locator;
   readonly phoneNumberError: Locator;
   readonly confirmPasswordError: Locator;
+  readonly welcomeHeading: Locator;
+  readonly successMessage: Locator;
 
   constructor(page: Page) {
     this.page = page;
@@ -45,6 +47,10 @@ export class RegisterPage {
     this.errorMessages = page.locator('#customerForm span.error');
     this.phoneNumberError = page.locator('[id="customer.phoneNumber.errors"]');
     this.confirmPasswordError = page.locator('[id="repeatedPassword.errors"]');
+    this.welcomeHeading = page.getByRole('heading', { name: /^Welcome / });
+    this.successMessage = page.getByText(
+      'Your account was created successfully. You are now logged in.',
+    );
   }
 
   async open() {
@@ -68,5 +74,9 @@ export class RegisterPage {
   async register(user: User) {
     await this.fillForm(user);
     await this.registerButton.click();
+  }
+
+  async submitByEnter() {
+    await this.confirmPasswordInput.press('Enter');
   }
 }

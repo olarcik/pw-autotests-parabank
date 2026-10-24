@@ -9,6 +9,17 @@ type RegisterLocator = {
 }[keyof RegisterPage];
 
 const REGISTER_PAGE_TITLE = 'ParaBank | Register for Free Online Account Access';
+const CUSTOMER_CREATED_TITLE = 'ParaBank | Customer Created';
+const ACCOUNT_SERVICES = [
+  'Open New Account',
+  'Accounts Overview',
+  'Transfer Funds',
+  'Bill Pay',
+  'Find Transactions',
+  'Update Contact Info',
+  'Request Loan',
+  'Log Out',
+];
 
 // Required fields in form order with their validation messages; Phone # is optional
 const REQUIRED_FIELDS: { field: string; input: RegisterLocator; error: string }[] = [
@@ -248,6 +259,117 @@ test.describe('Registration', () => {
       await expect(registerPage.confirmPasswordError).toHaveText('Passwords did not match.');
       await expect(page).toHaveTitle(REGISTER_PAGE_TITLE);
       await expect(mainPage.loginHeading).toBeVisible();
+    });
+  });
+
+  test('Successful registration with valid data', async ({ page, mainPage, registerPage }) => {
+    qase.id(4);
+    qase.fields({ severity: 'critical', priority: 'high', layer: 'e2e' });
+    const user = generateUser();
+
+    await test.step('Open the Register page', async () => {
+      await registerPage.open();
+      await expect(registerPage.heading).toBeVisible();
+    });
+
+    await test.step('Fill in all fields with valid data', async () => {
+      await registerPage.fillForm(user);
+      await expectFormToKeepUserData(registerPage, user);
+      await expect(registerPage.passwordInput).toHaveValue(user.password);
+      await expect(registerPage.confirmPasswordInput).toHaveValue(user.password);
+    });
+
+    await test.step('Click "Register"', async () => {
+      await registerPage.registerButton.click();
+      await expect(page).toHaveTitle(CUSTOMER_CREATED_TITLE);
+      await expect(registerPage.welcomeHeading).toHaveText(`Welcome ${user.username}`);
+      await expect(registerPage.successMessage).toBeVisible();
+    });
+
+    await test.step('Check the left panel', async () => {
+      await expect(mainPage.customerWelcome).toHaveText(
+        `Welcome ${user.firstName} ${user.lastName}`,
+      );
+      await expect(mainPage.accountServicesHeading).toBeVisible();
+      await expect(mainPage.accountServicesLinks).toHaveText(ACCOUNT_SERVICES);
+    });
+  });
+
+  test('Registered user can log in', async ({ page, mainPage, registerPage }) => {
+    qase.id(5);
+    qase.fields({ severity: 'critical', priority: 'high', layer: 'e2e' });
+    const user = generateUser();
+
+    await test.step('Register a new user with valid data and a unique username', async () => {
+      await registerPage.open();
+      await registerPage.register(user);
+      await expect(registerPage.welcomeHeading).toHaveText(`Welcome ${user.username}`);
+      await expect(registerPage.successMessage).toBeVisible();
+    });
+
+    await test.step('Click "Log Out"', async () => {
+      await mainPage.logout();
+      await expect(page).toHaveTitle('ParaBank | Welcome | Online Banking');
+      await expect(mainPage.loginHeading).toBeVisible();
+      await expect(mainPage.loginButton).toBeVisible();
+    });
+
+    await test.step('Log in with the new username and password', async () => {
+      await mainPage.login(user);
+      await expect(page).toHaveTitle('ParaBank | Accounts Overview');
+      await expect(mainPage.accountsOverviewHeading).toBeVisible();
+      await expect(mainPage.customerWelcome).toHaveText(
+        `Welcome ${user.firstName} ${user.lastName}`,
+      );
+    });
+  });
+
+  test('New customer gets a default account', async ({ page, mainPage, registerPage }) => {
+    qase.id(6);
+    qase.fields({ severity: 'normal', priority: 'medium', layer: 'e2e' });
+    const user = generateUser();
+
+    await test.step('Register a new user with valid data and a unique username', async () => {
+      await registerPage.open();
+      await registerPage.register(user);
+      await expect(registerPage.welcomeHeading).toHaveText(`Welcome ${user.username}`);
+      await expect(registerPage.successMessage).toBeVisible();
+    });
+
+    await test.step('Open "Accounts Overview"', async () => {
+      await mainPage.openAccountsOverview();
+      await expect(page).toHaveTitle('ParaBank | Accounts Overview');
+      await expect(mainPage.accountRows).toHaveCount(1);
+    });
+
+    await test.step('Check the account balance', async () => {
+      // Cells: account number, Balance, Available Amount
+      await expect(mainPage.accountRows.getByRole('cell')).toHaveText([
+        /^\d+$/,
+        '$515.50',
+        '$515.50',
+      ]);
+      await expect(mainPage.accountsTotalRow.getByRole('cell').nth(1)).toHaveText('$515.50');
+    });
+  });
+
+  test('Enter key submits the Register form', async ({ page, registerPage }) => {
+    qase.id(12);
+    qase.fields({ severity: 'minor', priority: 'low', layer: 'e2e' });
+    const user = generateUser();
+
+    await test.step('Open the Register page and fill all fields with valid data and a unique username', async () => {
+      await registerPage.open();
+      await registerPage.fillForm(user);
+      await expectFormToKeepUserData(registerPage, user);
+      await expect(registerPage.passwordInput).toHaveValue(user.password);
+      await expect(registerPage.confirmPasswordInput).toHaveValue(user.password);
+    });
+
+    await test.step('Focus the Confirm field and press Enter', async () => {
+      await registerPage.submitByEnter();
+      await expect(page).toHaveTitle(CUSTOMER_CREATED_TITLE);
+      await expect(registerPage.welcomeHeading).toHaveText(`Welcome ${user.username}`);
     });
   });
 });
