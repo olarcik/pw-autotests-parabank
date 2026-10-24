@@ -16,7 +16,10 @@ module.exports = defineConfig(
   },
   {
     files: ['eslint.config.js'],
-    languageOptions: { sourceType: 'commonjs', globals: { require: 'readonly', module: 'writable', __dirname: 'readonly' } },
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: { require: 'readonly', module: 'writable', __dirname: 'readonly' },
+    },
   },
   {
     files: ['src/tests/**/*.ts'],
