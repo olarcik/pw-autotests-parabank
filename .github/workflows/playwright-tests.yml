@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   checks:
-    name: Lint and type check
+    name: Lint, type check and format check
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -32,6 +32,8 @@ jobs:
         run: npm run lint
       - name: Type check
         run: npm run typecheck
+      - name: Format check
+        run: npm run format:check
 
   ui:
     name: UI tests
