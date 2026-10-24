@@ -81,7 +81,7 @@ When upgrading Playwright, bump `PLAYWRIGHT_VERSION` in `Dockerfile` too; the im
 [`.github/workflows/playwright-tests.yml`](.github/workflows/playwright-tests.yml) runs on every pull request and push to `main`
 (and manually from the Actions tab), with two parallel jobs:
 
-- **Lint and type check** — `npm ci`, `npm run lint`, `npm run typecheck`.
+- **Lint, type check and format check** — `npm ci`, `npm run lint`, `npm run typecheck`, `npm run format:check`.
 - **UI tests** — `npm run docker:test`, the same command as locally. The HTML report and
   test results are uploaded as the `playwright-report` artifact even when tests fail.
 
