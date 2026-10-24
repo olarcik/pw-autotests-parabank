@@ -1,4 +1,5 @@
 import { Locator, Page } from '@playwright/test';
+import { URLS } from '../../common/data/setup';
 import { User } from '../../common/interfaces/interface';
 
 export class RegisterPage {
@@ -17,6 +18,8 @@ export class RegisterPage {
   readonly passwordInput: Locator;
   readonly confirmPasswordInput: Locator;
   readonly registerButton: Locator;
+  readonly errorMessages: Locator;
+  readonly phoneNumberError: Locator;
 
   constructor(page: Page) {
     this.page = page;
@@ -37,6 +40,13 @@ export class RegisterPage {
     this.passwordInput = page.locator('[id="customer.password"]');
     this.confirmPasswordInput = page.locator('#repeatedPassword');
     this.registerButton = page.getByRole('button', { name: 'Register', exact: true });
+    // Validation messages are plain spans with no role, rendered next to each input as <input id>.errors
+    this.errorMessages = page.locator('#customerForm span.error');
+    this.phoneNumberError = page.locator('[id="customer.phoneNumber.errors"]');
+  }
+
+  async open() {
+    await this.page.goto(`${URLS.client}/register.htm`);
   }
 
   async fillForm(user: User) {

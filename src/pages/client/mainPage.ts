@@ -9,6 +9,7 @@ export class MainPage {
   readonly locationsItem: Locator;
   readonly adminPage: Locator;
   readonly registerLink: Locator;
+  readonly loginHeading: Locator;
 
   constructor(page: Page) {
     this.page = page;
@@ -18,6 +19,7 @@ export class MainPage {
     this.locationsItem = page.getByRole('link', { name: 'Locations', exact: true });
     this.adminPage = page.getByRole('link', { name: 'Admin Page', exact: true });
     this.registerLink = page.getByRole('link', { name: 'Register', exact: true });
+    this.loginHeading = page.getByRole('heading', { name: 'Customer Login', exact: true });
   }
 
   async open() {
