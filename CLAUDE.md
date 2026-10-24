@@ -83,6 +83,12 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 - `QASE_MODE` (`off` | `testops` | `report`), `QASE_TESTOPS_PROJECT`, `QASE_TESTOPS_API_TOKEN`, `QASE_TESTOPS_RUN_TITLE` — Qase reporter only, read in `playwright.config.ts` or by the reporter, not in `setup.ts`.
 - `CI` — set by the CI runner (retries, single worker, `forbidOnly`).
 
+### Formatting
+
+- VS Code fixes formatting on save (Prettier, settings in `.vscode/`; install the recommended `esbenp.prettier-vscode` extension).
+- The pre-commit hook and the CI `checks` job only check (`npm run format:check`) and never rewrite files.
+- If the check fails, run `npm run format` and commit the result.
+
 ### Code style
 
 - Formatting is owned by Prettier (`.prettierrc`: single quotes, semicolons, trailing commas, width 100, 2 spaces, LF; exclusions in `.prettierignore`). Run `npm run format` instead of formatting by hand; ESLint style rules that conflict with it are disabled by `eslint-config-prettier`.
