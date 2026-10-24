@@ -65,7 +65,7 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 - Standalone classes (no base class): take `page: Page` in the constructor and declare `page` and locators as `readonly` fields initialised there.
 - Follow the structure template strictly — don't add folders, base classes, or helpers that aren't in it.
 - Prefer user-facing locators: `getByRole`, `getByLabel`, `getByText`, `getByTestId`. Avoid CSS/XPath unless there is no alternative.
-- Page objects expose actions (`login(user)`, `openAccount(type)`) — assertions belong in tests.
+- Page objects expose actions (`login(user)`, `openAccount(type)`). Assertions belong in tests; the only exception is a composite `expect…` method that checks the state of one page (e.g. `RegisterPage.expectFormValues(user)`). Single checks stay in tests.
 - Register every new page object by adding it to `pagesMap` in `baseTest.ts` — fixtures and their types are generated from it.
 
 ### Data & configuration
@@ -74,6 +74,7 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 - When adding a variable, update `.env.example`, `setup.ts`, the `playwright-tests` service `environment:` in `docker-compose.yml`, and the `env:` block of the `ui` job in `.github/workflows/playwright-tests.yml`.
 - Never commit credentials or `.env`. The only CI secret is `QASE_TESTOPS_API_TOKEN` (GitHub Actions secrets).
 - Generate unique data (usernames, emails) with helpers in `src/common/utils/`, not hard-coded values.
+- Shared static values (page titles, validation messages, expected amounts, fixed inputs) live in `src/common/data/test.ts`, grouped and commented; specs keep no module-level constants.
 
 ### Environment variables (`.env.example`)
 

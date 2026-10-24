@@ -1,4 +1,4 @@
-import { Locator, Page } from '@playwright/test';
+import { expect, Locator, Page } from '@playwright/test';
 import { URLS } from '../../common/data/setup';
 import { User } from '../../common/interfaces/interface';
 
@@ -23,6 +23,7 @@ export class RegisterPage {
   readonly confirmPasswordError: Locator;
   readonly welcomeHeading: Locator;
   readonly successMessage: Locator;
+  readonly requiredFields: { name: string; input: Locator }[];
 
   constructor(page: Page) {
     this.page = page;
@@ -51,6 +52,19 @@ export class RegisterPage {
     this.successMessage = page.getByText(
       'Your account was created successfully. You are now logged in.',
     );
+    // Required fields in form order; Phone # is optional
+    this.requiredFields = [
+      { name: 'First Name', input: this.firstNameInput },
+      { name: 'Last Name', input: this.lastNameInput },
+      { name: 'Address', input: this.addressInput },
+      { name: 'City', input: this.cityInput },
+      { name: 'State', input: this.stateInput },
+      { name: 'Zip Code', input: this.zipCodeInput },
+      { name: 'SSN', input: this.ssnInput },
+      { name: 'Username', input: this.usernameInput },
+      { name: 'Password', input: this.passwordInput },
+      { name: 'Confirm', input: this.confirmPasswordInput },
+    ];
   }
 
   async open() {
@@ -78,5 +92,18 @@ export class RegisterPage {
 
   async submitByEnter() {
     await this.confirmPasswordInput.press('Enter');
+  }
+
+  // Checks every non-password field; password fields are asserted by each test as they differ
+  async expectFormValues(user: User) {
+    await expect(this.firstNameInput).toHaveValue(user.firstName);
+    await expect(this.lastNameInput).toHaveValue(user.lastName);
+    await expect(this.addressInput).toHaveValue(user.address.street);
+    await expect(this.cityInput).toHaveValue(user.address.city);
+    await expect(this.stateInput).toHaveValue(user.address.state);
+    await expect(this.zipCodeInput).toHaveValue(user.address.zipCode);
+    await expect(this.phoneInput).toHaveValue(user.phoneNumber);
+    await expect(this.ssnInput).toHaveValue(user.ssn);
+    await expect(this.usernameInput).toHaveValue(user.username);
   }
 }
