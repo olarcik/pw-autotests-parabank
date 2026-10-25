@@ -38,9 +38,10 @@ export default defineConfig({
           uploadAttachments: true,
         },
         framework: {
+          /* Adds the Playwright project name (chromium, firefox, webkit or api) as the Qase parameter "Project" */
           browser: {
             addAsParameter: true,
-            parameterName: 'Browser',
+            parameterName: 'Project',
           },
           markAsFlaky: true,
         },
@@ -61,16 +62,25 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      testIgnore: 'api/**',
     },
 
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
+      testIgnore: 'api/**',
     },
 
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
+      testIgnore: 'api/**',
+    },
+
+    /* API tests: plain HTTP through the `request` fixture, run once and without a browser */
+    {
+      name: 'api',
+      testMatch: 'api/**/*.spec.ts',
     },
 
     /* Test against mobile viewports. */
