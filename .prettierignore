@@ -5,5 +5,7 @@ build
 .playwright-mcp
 files
 package-lock.json
+# Verbatim copy of the ParaBank OpenAPI spec, kept byte-for-byte as served
+docs/parabank-openapi.yaml
 # Local, untracked Claude Code settings
 .claude/settings.local.json
