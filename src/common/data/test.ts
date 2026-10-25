@@ -40,6 +40,9 @@ export const ACCOUNT_SERVICES = [
 // Balance of the default account every new customer gets on registration
 export const NEW_CUSTOMER_BALANCE = '$515.50';
 
+// The same default account in REST JSON, where amounts are numbers (515.50 parses to 515.5)
+export const NEW_CUSTOMER_ACCOUNT = { type: 'CHECKING', balance: 515.5 } as const;
+
 // Password and confirmation that differ only in letter case
 export const CASE_MISMATCHED_PASSWORDS = {
   password: 'Secret123',
