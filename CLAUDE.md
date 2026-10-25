@@ -57,6 +57,7 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 - Use web-first assertions (`await expect(locator).toBeVisible()`); no `waitForTimeout` or hard sleeps.
 - Tests must be independent and runnable in parallel (`fullyParallel: true`). Create the data a test needs; don't rely on another test's state.
 - Use `test.step()` for multi-step flows to keep reports readable (steps are also sent to Qase).
+- Tests navigate as a user: start on the Home page (`test.beforeEach` with `mainPage.open()`) and reach the target page through visible steps (e.g. `mainPage.openRegisterPage()`) inside the test. A direct `goto` to an inner page is allowed only when the test checks exactly that (e.g. a direct link).
 - Link each test to its Qase case with `qase.id(<id>)` as the first line of the test body (`qase` is exported from `baseTest.ts`). The ID in `qase.id()` always equals the case ID in Qase. Don't use the `qase(id, 'title')` title wrapper — it fails the `playwright/valid-title` lint rule. Optional metadata: `qase.fields({ severity, priority, layer })`, `qase.suite()`, `qase.attach()`, `qase.ignore()`.
 
 ### Page objects

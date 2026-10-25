@@ -9,11 +9,13 @@ import {
 } from '../../common/data/test';
 
 test.describe('Registration', () => {
+  test.beforeEach(async ({ mainPage }) => {
+    await mainPage.open();
+  });
+
   test('Open Register page from Home page', async ({ page, mainPage, registerPage }) => {
     qase.id(1);
     qase.fields({ severity: 'normal', priority: 'medium', layer: 'e2e' });
-
-    await mainPage.open();
 
     await test.step('Click the "Register" link in the left panel of the Home page', async () => {
       await mainPage.openRegisterPage();
@@ -27,12 +29,12 @@ test.describe('Registration', () => {
     });
   });
 
-  test('Register form shows all fields', async ({ registerPage }) => {
+  test('Register form shows all fields', async ({ mainPage, registerPage }) => {
     qase.id(2);
     qase.fields({ severity: 'minor', priority: 'low', layer: 'e2e' });
 
     await test.step('Open the Register page', async () => {
-      await registerPage.open();
+      await mainPage.openRegisterPage();
       await expect(registerPage.heading).toBeVisible();
     });
 
@@ -61,13 +63,13 @@ test.describe('Registration', () => {
     });
   });
 
-  test('Password and Confirm fields mask input', async ({ registerPage }) => {
+  test('Password and Confirm fields mask input', async ({ mainPage, registerPage }) => {
     qase.id(3);
     qase.fields({ severity: 'minor', priority: 'low', layer: 'e2e' });
     const user = generateUser();
 
     await test.step('Open the Register page', async () => {
-      await registerPage.open();
+      await mainPage.openRegisterPage();
       await expect(registerPage.heading).toBeVisible();
     });
 
@@ -91,7 +93,7 @@ test.describe('Registration', () => {
     const user = generateUser();
 
     await test.step('Open the Register page', async () => {
-      await registerPage.open();
+      await mainPage.openRegisterPage();
       await expect(registerPage.heading).toBeVisible();
     });
 
@@ -124,7 +126,8 @@ test.describe('Registration', () => {
     const user = generateUser();
 
     await test.step('Register a new user with valid data and a unique username', async () => {
-      await registerPage.open();
+      await mainPage.openRegisterPage();
+      await expect(registerPage.heading).toBeVisible();
       await registerPage.register(user);
       await expect(registerPage.welcomeHeading).toHaveText(`Welcome ${user.username}`);
       await expect(registerPage.successMessage).toBeVisible();
@@ -153,7 +156,8 @@ test.describe('Registration', () => {
     const user = generateUser();
 
     await test.step('Register a new user with valid data and a unique username', async () => {
-      await registerPage.open();
+      await mainPage.openRegisterPage();
+      await expect(registerPage.heading).toBeVisible();
       await registerPage.register(user);
       await expect(registerPage.welcomeHeading).toHaveText(`Welcome ${user.username}`);
       await expect(registerPage.successMessage).toBeVisible();
@@ -183,7 +187,7 @@ test.describe('Registration', () => {
     qase.fields({ severity: 'major', priority: 'high', layer: 'e2e' });
 
     await test.step('Open the Register page', async () => {
-      await registerPage.open();
+      await mainPage.openRegisterPage();
       await expect(registerPage.heading).toBeVisible();
     });
 
@@ -212,10 +216,14 @@ test.describe('Registration', () => {
   }) => {
     qase.id(8);
     qase.fields({ severity: 'major', priority: 'high', layer: 'e2e' });
+    // 10 full Home -> Register -> submit cycles in one test don't fit the default timeout
+    test.slow();
 
     for (const { name, input } of registerPage.requiredFields) {
       await test.step(`Leave ${name} empty and submit`, async () => {
-        await registerPage.open();
+        await mainPage.open();
+        await mainPage.openRegisterPage();
+        await expect(registerPage.heading).toBeVisible();
         await registerPage.fillForm(generateUser());
         await input.clear();
         await registerPage.registerButton.click();
@@ -226,14 +234,15 @@ test.describe('Registration', () => {
     }
   });
 
-  test('Entered values are kept after failed submit', async ({ page, registerPage }) => {
+  test('Entered values are kept after failed submit', async ({ page, mainPage, registerPage }) => {
     qase.id(9);
     qase.fields({ severity: 'minor', priority: 'low', layer: 'e2e' });
     const user = generateUser();
     const mismatchedPassword = generateUser().password;
 
     await test.step('Open the Register page and fill all fields with valid data, but enter a different value in Confirm', async () => {
-      await registerPage.open();
+      await mainPage.openRegisterPage();
+      await expect(registerPage.heading).toBeVisible();
       await registerPage.fillForm(user);
       await registerPage.confirmPasswordInput.fill(mismatchedPassword);
       await registerPage.expectFormValues(user);
@@ -261,7 +270,8 @@ test.describe('Registration', () => {
     const mismatchedPassword = generateUser().password;
 
     await test.step('Open the Register page and fill all fields with valid data', async () => {
-      await registerPage.open();
+      await mainPage.openRegisterPage();
+      await expect(registerPage.heading).toBeVisible();
       await registerPage.fillForm(user);
       await registerPage.expectFormValues(user);
     });
@@ -288,7 +298,8 @@ test.describe('Registration', () => {
     const user = generateUser({ password });
 
     await test.step('Open the Register page and fill all fields with valid data', async () => {
-      await registerPage.open();
+      await mainPage.openRegisterPage();
+      await expect(registerPage.heading).toBeVisible();
       await registerPage.fillForm(user);
       await registerPage.expectFormValues(user);
     });
@@ -308,13 +319,14 @@ test.describe('Registration', () => {
     });
   });
 
-  test('Enter key submits the Register form', async ({ page, registerPage }) => {
+  test('Enter key submits the Register form', async ({ page, mainPage, registerPage }) => {
     qase.id(12);
     qase.fields({ severity: 'minor', priority: 'low', layer: 'e2e' });
     const user = generateUser();
 
     await test.step('Open the Register page and fill all fields with valid data and a unique username', async () => {
-      await registerPage.open();
+      await mainPage.openRegisterPage();
+      await expect(registerPage.heading).toBeVisible();
       await registerPage.fillForm(user);
       await registerPage.expectFormValues(user);
       await expect(registerPage.passwordInput).toHaveValue(user.password);

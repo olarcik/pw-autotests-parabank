@@ -1,5 +1,4 @@
 import { expect, Locator, Page } from '@playwright/test';
-import { URLS } from '../../common/data/setup';
 import { User } from '../../common/domains/user/interfaces';
 
 export class RegisterPage {
@@ -65,10 +64,6 @@ export class RegisterPage {
       { name: 'Password', input: this.passwordInput },
       { name: 'Confirm', input: this.confirmPasswordInput },
     ];
-  }
-
-  async open() {
-    await this.page.goto(`${URLS.client}/register.htm`);
   }
 
   async fillForm(user: User) {
