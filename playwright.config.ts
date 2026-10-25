@@ -38,9 +38,10 @@ export default defineConfig({
           uploadAttachments: true,
         },
         framework: {
+          /* Adds the Playwright project name (chromium, firefox, webkit or api) as the Qase parameter "Project" */
           browser: {
             addAsParameter: true,
-            parameterName: 'Browser',
+            parameterName: 'Project',
           },
           markAsFlaky: true,
         },
