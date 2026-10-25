@@ -33,7 +33,7 @@ src/
 │   ├── data/
 │   │   ├── setup.ts    # ENV, TENANT, BASE_URL, URLS — read from process.env
 │   │   └── test.ts     # shared static test values
-│   ├── interfaces/     # shared TypeScript types
+│   ├── interfaces/     # types shared by several domains (no barrel files)
 │   ├── utils/          # shared generators and helpers
 │   ├── integrations/   # email/OTP and other external services
 │   └── domains/<domain>/   # api.ts, data.ts, interfaces.ts, utils.ts per business domain
@@ -57,6 +57,7 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 - Use web-first assertions (`await expect(locator).toBeVisible()`); no `waitForTimeout` or hard sleeps.
 - Tests must be independent and runnable in parallel (`fullyParallel: true`). Create the data a test needs; don't rely on another test's state.
 - Use `test.step()` for multi-step flows to keep reports readable (steps are also sent to Qase).
+- Tests navigate as a user: start on the Home page (`test.beforeEach` with `mainPage.open()`) and reach the target page through visible steps (e.g. `mainPage.openRegisterPage()`) inside the test. A direct `goto` to an inner page is allowed only when the test checks exactly that (e.g. a direct link).
 - Link each test to its Qase case with `qase.id(<id>)` as the first line of the test body (`qase` is exported from `baseTest.ts`). The ID in `qase.id()` always equals the case ID in Qase. Don't use the `qase(id, 'title')` title wrapper — it fails the `playwright/valid-title` lint rule. Optional metadata: `qase.fields({ severity, priority, layer })`, `qase.suite()`, `qase.attach()`, `qase.ignore()`.
 
 ### Page objects
@@ -65,7 +66,7 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 - Standalone classes (no base class): take `page: Page` in the constructor and declare `page` and locators as `readonly` fields initialised there.
 - Follow the structure template strictly — don't add folders, base classes, or helpers that aren't in it.
 - Prefer user-facing locators: `getByRole`, `getByLabel`, `getByText`, `getByTestId`. Avoid CSS/XPath unless there is no alternative.
-- Page objects expose actions (`login(user)`, `openAccount(type)`) — assertions belong in tests.
+- Page objects expose actions (`login(user)`, `openAccount(type)`). Assertions belong in tests; the only exception is a composite `expect…` method that checks the state of one page (e.g. `RegisterPage.expectFormValues(user)`). Single checks stay in tests.
 - Register every new page object by adding it to `pagesMap` in `baseTest.ts` — fixtures and their types are generated from it.
 
 ### Data & configuration
@@ -74,6 +75,7 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 - When adding a variable, update `.env.example`, `setup.ts`, the `playwright-tests` service `environment:` in `docker-compose.yml`, and the `env:` block of the `ui` job in `.github/workflows/playwright-tests.yml`.
 - Never commit credentials or `.env`. The only CI secret is `QASE_TESTOPS_API_TOKEN` (GitHub Actions secrets).
 - Generate unique data (usernames, emails) with helpers in `src/common/utils/`, not hard-coded values.
+- Shared static values (page titles, validation messages, expected amounts, fixed inputs) live in `src/common/data/test.ts`, grouped and commented; specs keep no module-level constants.
 
 ### Environment variables (`.env.example`)
 
@@ -93,7 +95,7 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 
 - Formatting is owned by Prettier (`.prettierrc`: single quotes, semicolons, trailing commas, width 100, 2 spaces, LF; exclusions in `.prettierignore`). Run `npm run format` instead of formatting by hand; ESLint style rules that conflict with it are disabled by `eslint-config-prettier`.
 - TypeScript strict mode; no `any` unless justified.
-- Shared types go in `src/common/interfaces/`; domain-specific types in `src/common/domains/<domain>/interfaces.ts`.
+- Domain types live in `src/common/domains/<domain>/interfaces.ts` and are imported directly from there (relative path). `src/common/interfaces/` is only for types shared by several domains. Don't create re-export (barrel) files.
 - Keep files LF line endings (enforced by `.gitattributes` and Prettier).
 
 ## Docker
@@ -120,6 +122,11 @@ Qase mode in `ui`: `QASE_MODE=testops` only when repo variable `QASE_MODE` is `t
 - MCP servers are defined in `.mcp.json`:
   - `qase` (`@qase/mcp-server`, reuses `QASE_TESTOPS_API_TOKEN` from `.env`) with the `qase-skill` skill (`.claude/skills/qase-skill/SKILL.md`) — manage cases, runs and defects.
   - `playwright` (`@playwright/mcp`, headed Chrome, output in `.playwright-mcp/`) with the `playwright-skill` skill (`.claude/skills/playwright-skill/SKILL.md`) — explore pages, build locators, debug. Finished work is always plain specs verified with `npx playwright test`.
+
+## Known issues
+
+- ParaBank sometimes (about 0.3–1.3% of successful registrations) falsely answers "This username already exists." and creates no customer. The cause is on the server side: it is not a race between tests (reproduces with one worker) and not a browser POST retry (Chromium net log shows a single POST). Reproduces in chromium and firefox, and also with the earlier direct-`goto` navigation.
+- It is absorbed by `retries` in `playwright.config.ts` (1 locally, 2 on CI). Don't add hidden retries (loops, re-submits) inside registration tests.
 
 ## Git
 

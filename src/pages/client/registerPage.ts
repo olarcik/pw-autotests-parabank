@@ -1,5 +1,5 @@
-import { Locator, Page } from '@playwright/test';
-import { User } from '../../common/interfaces/interface';
+import { expect, Locator, Page } from '@playwright/test';
+import { User } from '../../common/domains/user/interfaces';
 
 export class RegisterPage {
   readonly page: Page;
@@ -17,6 +17,12 @@ export class RegisterPage {
   readonly passwordInput: Locator;
   readonly confirmPasswordInput: Locator;
   readonly registerButton: Locator;
+  readonly errorMessages: Locator;
+  readonly phoneNumberError: Locator;
+  readonly confirmPasswordError: Locator;
+  readonly welcomeHeading: Locator;
+  readonly successMessage: Locator;
+  readonly requiredFields: { name: string; input: Locator }[];
 
   constructor(page: Page) {
     this.page = page;
@@ -37,6 +43,27 @@ export class RegisterPage {
     this.passwordInput = page.locator('[id="customer.password"]');
     this.confirmPasswordInput = page.locator('#repeatedPassword');
     this.registerButton = page.getByRole('button', { name: 'Register', exact: true });
+    // Validation messages are plain spans with no role, rendered next to each input as <input id>.errors
+    this.errorMessages = page.locator('#customerForm span.error');
+    this.phoneNumberError = page.locator('[id="customer.phoneNumber.errors"]');
+    this.confirmPasswordError = page.locator('[id="repeatedPassword.errors"]');
+    this.welcomeHeading = page.getByRole('heading', { name: /^Welcome / });
+    this.successMessage = page.getByText(
+      'Your account was created successfully. You are now logged in.',
+    );
+    // Required fields in form order; Phone # is optional
+    this.requiredFields = [
+      { name: 'First Name', input: this.firstNameInput },
+      { name: 'Last Name', input: this.lastNameInput },
+      { name: 'Address', input: this.addressInput },
+      { name: 'City', input: this.cityInput },
+      { name: 'State', input: this.stateInput },
+      { name: 'Zip Code', input: this.zipCodeInput },
+      { name: 'SSN', input: this.ssnInput },
+      { name: 'Username', input: this.usernameInput },
+      { name: 'Password', input: this.passwordInput },
+      { name: 'Confirm', input: this.confirmPasswordInput },
+    ];
   }
 
   async fillForm(user: User) {
@@ -56,5 +83,22 @@ export class RegisterPage {
   async register(user: User) {
     await this.fillForm(user);
     await this.registerButton.click();
+  }
+
+  async submitByEnter() {
+    await this.confirmPasswordInput.press('Enter');
+  }
+
+  // Checks every non-password field; password fields are asserted by each test as they differ
+  async expectFormValues(user: User) {
+    await expect(this.firstNameInput).toHaveValue(user.firstName);
+    await expect(this.lastNameInput).toHaveValue(user.lastName);
+    await expect(this.addressInput).toHaveValue(user.address.street);
+    await expect(this.cityInput).toHaveValue(user.address.city);
+    await expect(this.stateInput).toHaveValue(user.address.state);
+    await expect(this.zipCodeInput).toHaveValue(user.address.zipCode);
+    await expect(this.phoneInput).toHaveValue(user.phoneNumber);
+    await expect(this.ssnInput).toHaveValue(user.ssn);
+    await expect(this.usernameInput).toHaveValue(user.username);
   }
 }
