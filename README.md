@@ -38,7 +38,7 @@ The image is pinned by digest in `docker-compose.yml`; the comment there shows h
 
 1. `npm run docker:up` ends without errors, and `docker compose ps` shows the container as `(healthy)`.
 2. http://localhost:8080/parabank opens the ParaBank home page in a browser.
-3. `npm test` passes in all browsers.
+3. `npm test` passes in all projects (chromium, firefox, webkit and api).
 
 ### Troubleshooting
 
@@ -82,7 +82,7 @@ When upgrading Playwright, bump `PLAYWRIGHT_VERSION` in `Dockerfile` too; the im
 (and manually from the Actions tab), with two parallel jobs:
 
 - **Lint, type check and format check** — `npm ci`, `npm run lint`, `npm run typecheck`, `npm run format:check`.
-- **UI tests** — `npm run docker:test`, the same command as locally. The HTML report and
+- **UI tests** — `npm run docker:test`, the same command as locally (all projects, API tests included). The HTML report and
   test results are uploaded as the `playwright-report` artifact even when tests fail.
 
 A new push to the same branch cancels the run still in progress. The workflow has read-only repository permissions.

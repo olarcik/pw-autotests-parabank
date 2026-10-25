@@ -6,8 +6,9 @@ The framework is built incrementally: folders exist up front (kept with `.gitkee
 ## Commands
 
 ```bash
-npm test                                   # playwright test: all tests, all browsers (needs a running app)
+npm test                                   # playwright test: all projects — 3 browsers + api (needs a running app)
 npx playwright test --project=chromium     # single browser
+npx playwright test --project=api          # API tests only (no browser)
 npx playwright test src/tests/client       # single folder
 npx playwright test -g "login"             # by test title
 npm run lint                               # ESLint (typescript-eslint + eslint-plugin-playwright + eslint-config-prettier)
@@ -29,19 +30,21 @@ Before committing, run `npm run lint`, `npm run typecheck` and `npm run format:c
 ```
 src/
 ├── common/
-│   ├── api/            # shared API transport (base.ts), re-exported from index.ts
+│   ├── api/
+│   │   └── base.ts     # REST transport: apiGet (REST base URL, Accept: application/json)
 │   ├── data/
-│   │   ├── setup.ts    # ENV, TENANT, BASE_URL, URLS — read from process.env
+│   │   ├── setup.ts    # ENV, TENANT, BASE_URL, URLS (client, admin, api) — read from process.env
 │   │   └── test.ts     # shared static test values
 │   ├── interfaces/     # types shared by several domains (no barrel files)
 │   ├── utils/          # shared generators and helpers
 │   ├── integrations/   # email/OTP and other external services
-│   └── domains/<domain>/   # api.ts, data.ts, interfaces.ts, utils.ts per business domain
+│   └── domains/<domain>/   # api.ts, data.ts, interfaces.ts, schemas.ts, utils.ts per business domain
 ├── pages/
 │   └── client/         # <feature>Page.ts
 └── tests/
-    ├── baseTest.ts     # extended `test` with page-object fixtures (generated from pagesMap)
-    └── client/
+    ├── baseTest.ts     # extended `test` with page-object fixtures (generated from pagesMap) and `expect` with toMatchSchema
+    ├── api/            # API tests, Playwright project `api` (no browser)
+    └── client/         # UI tests, projects chromium / firefox / webkit
 files/uploads/          # input files for upload tests
 files/downloads/        # download output (git-ignored)
 storageStates/          # saved auth sessions, created at runtime (git-ignored)
@@ -59,6 +62,14 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 - Use `test.step()` for multi-step flows to keep reports readable (steps are also sent to Qase).
 - Tests navigate as a user: start on the Home page (`test.beforeEach` with `mainPage.open()`) and reach the target page through visible steps (e.g. `mainPage.openRegisterPage()`) inside the test. A direct `goto` to an inner page is allowed only when the test checks exactly that (e.g. a direct link).
 - Link each test to its Qase case with `qase.id(<id>)` as the first line of the test body (`qase` is exported from `baseTest.ts`). The ID in `qase.id()` always equals the case ID in Qase. Don't use the `qase(id, 'title')` title wrapper — it fails the `playwright/valid-title` lint rule. Optional metadata: `qase.fields({ severity, priority, layer })`, `qase.suite()`, `qase.attach()`, `qase.ignore()`.
+
+### API tests
+
+- Reference: [`docs/parabank-api.md`](docs/parabank-api.md) (endpoints, real behaviour, methods tests must never call) and the spec copy `docs/parabank-openapi.yaml`.
+- Specs live in `src/tests/api/`, run only in the Playwright project `api` (browser projects ignore `api/**`) and use the built-in `request` fixture, which keeps cookies between requests of one test.
+- REST calls go through `apiGet` in `src/common/api/base.ts` (REST base `URLS.api`, `Accept: application/json` — without it ParaBank answers XML). Registration has no REST method: it is the `register.htm` form, `GET` before `POST` in the same session.
+- Domain helpers in `src/common/domains/<domain>/api.ts` only send requests and return the `APIResponse`. No checks and no retries inside them: status, content type, schema and values are asserted in the test.
+- Check JSON bodies with `expect(body).toMatchSchema(<Zod schema>)` (from `baseTest.ts`), then compare values; amounts are JSON numbers (`515.5`, not `'515.50'`).
 
 ### Page objects
 
@@ -95,7 +106,7 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 
 - Formatting is owned by Prettier (`.prettierrc`: single quotes, semicolons, trailing commas, width 100, 2 spaces, LF; exclusions in `.prettierignore`). Run `npm run format` instead of formatting by hand; ESLint style rules that conflict with it are disabled by `eslint-config-prettier`.
 - TypeScript strict mode; no `any` unless justified.
-- Domain types live in `src/common/domains/<domain>/interfaces.ts` and are imported directly from there (relative path). `src/common/interfaces/` is only for types shared by several domains. Don't create re-export (barrel) files.
+- Domain types live in `src/common/domains/<domain>/interfaces.ts` and are imported directly from there (relative path). Zod schemas of API responses live in `schemas.ts` next to it; their types are declared in `interfaces.ts` as `z.infer<typeof …Schema>`, not written by hand. `src/common/interfaces/` is only for types shared by several domains. Don't create re-export (barrel) files.
 - Keep files LF line endings (enforced by `.gitattributes` and Prettier).
 
 ## Docker
@@ -112,13 +123,15 @@ See [`docker-compose.yml`](docker-compose.yml), [`Dockerfile`](Dockerfile) and R
 GitHub Actions — `.github/workflows/playwright-tests.yml` runs on push/PR to `main` and manually, with two parallel jobs:
 
 - `checks`: `npm ci` → lint → typecheck → format:check.
-- `ui`: `npm run docker:test` (same as locally) → upload `playwright-report/` and `test-results/` as an artifact (always).
+- `ui`: `npm run docker:test` (same as locally; runs all projects, the `api` project included) → upload `playwright-report/` and `test-results/` as an artifact (always).
 
 Qase mode in `ui`: `QASE_MODE=testops` only when repo variable `QASE_MODE` is `testops` **and** variable `QASE_TESTOPS_PROJECT` and secret `QASE_TESTOPS_API_TOKEN` are both set; otherwise `off`. Optional variables `ENV`, `TENANT`.
 
 ## Qase and Claude Code tooling
 
 - Reporter `playwright-qase-reporter` is configured in `playwright.config.ts`, alongside `list` and `html`. `QASE_MODE=report` writes a local JSON report to `build/qase-report/`.
+- The reporter adds the Playwright project name as the result parameter `Project` (`chromium`, `firefox`, `webkit` or `api`).
+- Qase project `PB` suites: `E2E` (UI tests, `src/tests/client/`) and `API` (`src/tests/api/`), each with feature suites inside (e.g. `E2E / Registration`, `API / Registration`). The case field **Layer** matches: `e2e` or `api`, also set in `qase.fields({ layer })`.
 - MCP servers are defined in `.mcp.json`:
   - `qase` (`@qase/mcp-server`, reuses `QASE_TESTOPS_API_TOKEN` from `.env`) with the `qase-skill` skill (`.claude/skills/qase-skill/SKILL.md`) — manage cases, runs and defects.
   - `playwright` (`@playwright/mcp`, headed Chrome, output in `.playwright-mcp/`) with the `playwright-skill` skill (`.claude/skills/playwright-skill/SKILL.md`) — explore pages, build locators, debug. Finished work is always plain specs verified with `npx playwright test`.
@@ -126,6 +139,7 @@ Qase mode in `ui`: `QASE_MODE=testops` only when repo variable `QASE_MODE` is `t
 ## Known issues
 
 - ParaBank sometimes (about 0.3–1.3% of successful registrations) falsely answers "This username already exists." and creates no customer. The cause is on the server side: it is not a race between tests (reproduces with one worker) and not a browser POST retry (Chromium net log shows a single POST). Reproduces in chromium and firefox, and also with the earlier direct-`goto` navigation.
+- In the API test the same bug sometimes shows up one step later: the form answers "Customer Created", but the server logs `Username … already exists in database` for that user and `GET /login/...` returns `400 Invalid username and/or password`.
 - It is absorbed by `retries` in `playwright.config.ts` (1 locally, 2 on CI). Don't add hidden retries (loops, re-submits) inside registration tests.
 
 ## Git
