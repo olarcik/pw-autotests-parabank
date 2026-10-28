@@ -31,7 +31,9 @@ Before committing, run `npm run lint`, `npm run typecheck` and `npm run format:c
 src/
 ├── common/
 │   ├── api/
-│   │   └── base.ts     # REST transport: apiGet (REST base URL, Accept: application/json)
+│   │   ├── requestHandler.ts  # RequestHandler: new builder per request, report steps, exchange log
+│   │   ├── exchangeLog.ts     # Exchange type, masking of secrets, attachment files of failed tests
+│   │   └── endpoints.ts       # all request paths (REST paths and the register.htm URL)
 │   ├── data/
 │   │   ├── setup.ts    # ENV, TENANT, BASE_URL, URLS (client, admin, api) — read from process.env
 │   │   └── test.ts     # shared static test values
@@ -42,7 +44,7 @@ src/
 ├── pages/
 │   └── client/         # <feature>Page.ts
 └── tests/
-    ├── baseTest.ts     # extended `test` with page-object fixtures (generated from pagesMap) and `expect` with toMatchSchema
+    ├── baseTest.ts     # extended `test`: page-object fixtures (generated from pagesMap), `api` and `customer` fixtures; `expect` with toMatchSchema
     ├── api/            # API tests, Playwright project `api` (no browser)
     └── client/         # UI tests, projects chromium / firefox / webkit
 files/uploads/          # input files for upload tests
@@ -66,9 +68,19 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 ### API tests
 
 - Reference: [`docs/parabank-api.md`](docs/parabank-api.md) (endpoints, real behaviour, methods tests must never call) and the spec copy `docs/parabank-openapi.yaml`.
-- Specs live in `src/tests/api/`, run only in the Playwright project `api` (browser projects ignore `api/**`) and use the built-in `request` fixture, which keeps cookies between requests of one test.
-- REST calls go through `apiGet` in `src/common/api/base.ts` (REST base `URLS.api`, `Accept: application/json` — without it ParaBank answers XML). Registration has no REST method: it is the `register.htm` form, `GET` before `POST` in the same session.
-- Domain helpers in `src/common/domains/<domain>/api.ts` only send requests and return the `APIResponse`. No checks and no retries inside them: status, content type, schema and values are asserted in the test.
+- Specs live in `src/tests/api/` and run only in the Playwright project `api` (browser projects ignore `api/**`).
+- HTTP goes through the `api` fixture (`RequestHandler` from `src/common/api/requestHandler.ts`), built on the built-in `request` fixture: cookies are kept between requests of one test and never shared between tests.
+  - The handler holds no request state. Every `api.path(...)` / `api.url(...)` call returns a new builder (`.params()`, `.headers()`, `.form()`, `.body()`, then `.get()` / `.post()` — ParaBank has only GET and POST), so nothing leaks between requests or tests and nothing needs resetting.
+  - `path()` is REST: relative to `URLS.api`, sends `Accept: application/json` (without it ParaBank answers XML). `url()` takes a full address and sends only the headers set on it — used for the `register.htm` form. Paths come from `endpoints` in `src/common/api/endpoints.ts`.
+  - Terminal methods return the raw `APIResponse`: no status checks, no parsing, no retries. Everything is asserted in the test.
+  - Each request is a technical report step `METHOD /path` (no query; pathname for `url()`). The handler also keeps a log of exchanges for diagnostics only; it never affects how requests are built.
+  - Request and response files are attached only when the test (attempt) fails: `<NN> <METHOD> <path> request.json` and `<NN> <METHOD> <path> response.<json|html|txt>`, where `NN` is the exchange's position in the log from `01`, so repeated requests don't overwrite each other (the Qase reporter saves attachments by name). Built in `src/common/api/exchangeLog.ts`.
+  - Secrets are always masked as `***` in step titles and file contents: the password in the login path and every field whose name contains `password`.
+  - File names are made safe from the path: `***` → `masked`, `\ / : * ? " < > |` → `_`, repeated `_` collapsed, leading `_` dropped. `GET /login/qa_x/***` → `01 GET login_qa_x_masked request.json`. Step titles and file contents keep `/` and `***`.
+- Registration has no REST method: it is the `register.htm` form, `GET` before `POST` in the same session.
+- Domain helpers in `src/common/domains/<domain>/api.ts` take `api: RequestHandler`, only build and send the request and return the `APIResponse`. No checks and no retries inside them.
+- Step names in tests describe meaning — a user or system action (`Register a new customer`, `Log in as the new customer`) — without the method or endpoint; HTTP details are shown by the handler's nested steps.
+- Test data can be prepared through API fixtures: `customer` registers a new customer through the form, logs in via REST and gives `{ user, customer }`. It is lazy (only tests that ask for it register one) and has no retries inside. Registration tests don't use it — they check registration themselves. In UI tests note that it uses the `request` context, not the browser: the page is not logged in.
 - Check JSON bodies with `expect(body).toMatchSchema(<Zod schema>)` (from `baseTest.ts`), then compare values; amounts are JSON numbers (`515.5`, not `'515.50'`).
 
 ### Page objects

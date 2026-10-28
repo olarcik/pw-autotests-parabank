@@ -10,3 +10,4 @@ node_modules/
 !/files/downloads/.gitkeep
 /build/qase-report/
 /.playwright-mcp/
+.claude/settings.local.json

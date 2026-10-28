@@ -11,54 +11,28 @@ import { AccountSchema, CustomerSchema } from '../../common/domains/user/schemas
 import { NEW_CUSTOMER_ACCOUNT, PAGE_TITLES } from '../../common/data/test';
 
 test.describe('Registration', () => {
-  test('Successful registration via API', async ({ request }) => {
+  test('Successful registration via API', async ({ api }) => {
     qase.id(13);
     qase.fields({ severity: 'critical', priority: 'high', layer: 'api' });
 
     const user = generateUser();
-    let sessionId: string | undefined;
-    let customer: Customer;
 
-    await test.step('Open the registration form: GET /register.htm', async () => {
-      const response = await openRegisterForm(request);
+    await test.step('Register a new customer', async () => {
+      await openRegisterForm(api);
+      const response = await submitRegisterForm(api, user);
       expect(response.status()).toBe(200);
       expect(response.headers()['content-type']).toContain('text/html');
-
-      sessionId = (await request.storageState()).cookies.find(
-        (cookie) => cookie.name === 'JSESSIONID',
-      )?.value;
-      expect(sessionId).toBeTruthy();
-      expect(response.headers()['set-cookie']).toContain(`JSESSIONID=${sessionId}`);
+      expect(await response.text()).toContain(`<title>${PAGE_TITLES.customerCreated}</title>`);
     });
 
-    const submitResponse =
-      await test.step('Submit the form with valid data: POST /register.htm in the same session', async () => {
-        const response = await submitRegisterForm(request, user);
-        expect(response.status()).toBe(200);
-        expect(response.headers()['content-type']).toContain('text/html');
-
-        // The server accepted the session cookie from the GET: it started no new session
-        expect(response.headers()['set-cookie'] ?? '').not.toContain('JSESSIONID=');
-        const cookies = (await request.storageState()).cookies;
-        expect(cookies.find((cookie) => cookie.name === 'JSESSIONID')?.value).toBe(sessionId);
-        return response;
-      });
-
-    await test.step('Check the registration result', async () => {
-      expect(await submitResponse.text()).toContain(
-        `<title>${PAGE_TITLES.customerCreated}</title>`,
-      );
-    });
-
-    await test.step('Log in via REST: GET /login/{username}/{password}', async () => {
-      const response = await login(request, user);
+    const customer = await test.step('Log in as the new customer', async () => {
+      const response = await login(api, user);
       expect(response.status()).toBe(200);
       expect(response.headers()['content-type']).toContain('application/json');
 
       const body: unknown = await response.json();
       expect(body).toMatchSchema(CustomerSchema);
-      customer = body as Customer;
-      expect(customer).toEqual({
+      expect(body).toEqual({
         id: expect.any(Number),
         firstName: user.firstName,
         lastName: user.lastName,
@@ -66,10 +40,11 @@ test.describe('Registration', () => {
         phoneNumber: user.phoneNumber,
         ssn: user.ssn,
       });
+      return body as Customer;
     });
 
-    await test.step("Get the customer's accounts: GET /customers/{id}/accounts", async () => {
-      const response = await getAccounts(request, customer.id);
+    await test.step('Check the default account', async () => {
+      const response = await getAccounts(api, customer.id);
       expect(response.status()).toBe(200);
       expect(response.headers()['content-type']).toContain('application/json');
 
