@@ -1,5 +1,7 @@
 import { test, expect as baseExpect, Page } from '@playwright/test';
 import { z } from 'zod';
+import { RequestHandler } from '../common/api/requestHandler';
+import { URLS } from '../common/data/setup';
 import { MainPage } from '../pages/client/mainPage';
 import { RegisterPage } from '../pages/client/registerPage';
 
@@ -18,7 +20,7 @@ type PageFixtures = {
 // For example, if pagesMap has a key 'mainPage' with class MainPage,
 // PageFixtures['mainPage'] will be of type MainPage.
 // This allows us to use the fixtures in tests with proper type checking.
-export const baseTest = test.extend<PageFixtures>({
+const pageTest = test.extend<PageFixtures>({
   ...Object.entries(pagesMap).reduce(
     (fixtures, [key, pageClass]) => {
       fixtures[key] = async ({ page }, use) => {
@@ -32,6 +34,18 @@ export const baseTest = test.extend<PageFixtures>({
       (opts: { page: Page }, use: (instance: unknown) => Promise<void>) => Promise<void>
     >,
   ),
+});
+
+type ApiFixtures = {
+  // HTTP client on the REST base; built on `request`, so one test keeps its session cookies and
+  // tests never share them
+  api: RequestHandler;
+};
+
+export const baseTest = pageTest.extend<ApiFixtures>({
+  api: async ({ request }, use) => {
+    await use(new RequestHandler(request, URLS.api));
+  },
 });
 
 export { baseTest as test };

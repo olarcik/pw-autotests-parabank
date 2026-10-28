@@ -11,7 +11,7 @@ import { AccountSchema, CustomerSchema } from '../../common/domains/user/schemas
 import { NEW_CUSTOMER_ACCOUNT, PAGE_TITLES } from '../../common/data/test';
 
 test.describe('Registration', () => {
-  test('Successful registration via API', async ({ request }) => {
+  test('Successful registration via API', async ({ api, request }) => {
     qase.id(13);
     qase.fields({ severity: 'critical', priority: 'high', layer: 'api' });
 
@@ -20,7 +20,7 @@ test.describe('Registration', () => {
     let customer: Customer;
 
     await test.step('Open the registration form: GET /register.htm', async () => {
-      const response = await openRegisterForm(request);
+      const response = await openRegisterForm(api);
       expect(response.status()).toBe(200);
       expect(response.headers()['content-type']).toContain('text/html');
 
@@ -33,7 +33,7 @@ test.describe('Registration', () => {
 
     const submitResponse =
       await test.step('Submit the form with valid data: POST /register.htm in the same session', async () => {
-        const response = await submitRegisterForm(request, user);
+        const response = await submitRegisterForm(api, user);
         expect(response.status()).toBe(200);
         expect(response.headers()['content-type']).toContain('text/html');
 
@@ -51,7 +51,7 @@ test.describe('Registration', () => {
     });
 
     await test.step('Log in via REST: GET /login/{username}/{password}', async () => {
-      const response = await login(request, user);
+      const response = await login(api, user);
       expect(response.status()).toBe(200);
       expect(response.headers()['content-type']).toContain('application/json');
 
@@ -69,7 +69,7 @@ test.describe('Registration', () => {
     });
 
     await test.step("Get the customer's accounts: GET /customers/{id}/accounts", async () => {
-      const response = await getAccounts(request, customer.id);
+      const response = await getAccounts(api, customer.id);
       expect(response.status()).toBe(200);
       expect(response.headers()['content-type']).toContain('application/json');
 
