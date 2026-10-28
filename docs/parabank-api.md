@@ -251,7 +251,8 @@ Other:
 - **False "This username already exists."** on registration (see Known issues in `CLAUDE.md`): seen in
   about 0.3–1.3% of UI registrations. With plain HTTP form posts (`GET` + `POST`, one session each,
   sequential) it did not appear in 300 registrations — not proof that HTTP is unaffected (at 0.3% that
-  happens about one time in three), so API helpers that register users need the same retry policy.
+  happens about one time in three), so API registration is treated the same way as UI: only `retries`
+  in `playwright.config.ts`, no retries in helpers, fixtures or tests.
 - Registration without the preceding `GET register.htm` fails with `500` (section 5).
 - The server log prints usernames and passwords of REST logins in plain text.
 
