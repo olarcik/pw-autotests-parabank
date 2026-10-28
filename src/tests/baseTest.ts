@@ -1,6 +1,6 @@
 import { test, expect as baseExpect, Page } from '@playwright/test';
 import { z } from 'zod';
-import { RequestHandler } from '../common/api/requestHandler';
+import { RequestHandler, exchangeAttachments } from '../common/api/requestHandler';
 import { URLS } from '../common/data/setup';
 import { MainPage } from '../pages/client/mainPage';
 import { RegisterPage } from '../pages/client/registerPage';
@@ -43,8 +43,16 @@ type ApiFixtures = {
 };
 
 export const baseTest = pageTest.extend<ApiFixtures>({
-  api: async ({ request }, use) => {
-    await use(new RequestHandler(request, URLS.api));
+  api: async ({ request }, use, testInfo) => {
+    const api = new RequestHandler(request, URLS.api);
+    await use(api);
+
+    // Request/response files only for a failed attempt; each retry has its own testInfo
+    if (testInfo.status !== testInfo.expectedStatus) {
+      for (const { name, body, contentType } of api.log.flatMap(exchangeAttachments)) {
+        await testInfo.attach(name, { body, contentType });
+      }
+    }
   },
 });
 
