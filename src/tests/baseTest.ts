@@ -58,7 +58,10 @@ export const baseTest = pageTest.extend<ApiFixtures>({
 
     // Request/response files only for a failed attempt; each retry has its own testInfo
     if (testInfo.status !== testInfo.expectedStatus) {
-      for (const { name, body, contentType } of api.log.flatMap(exchangeAttachments)) {
+      const attachments = api.log.flatMap((exchange, index) =>
+        exchangeAttachments(exchange, index + 1),
+      );
+      for (const { name, body, contentType } of attachments) {
         await testInfo.attach(name, { body, contentType });
       }
     }

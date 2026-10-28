@@ -158,19 +158,17 @@ const mask = (value: unknown): unknown => {
   return value;
 };
 
-// Files for the report of a failed test: "<METHOD> <path> request.json" and
-// "<METHOD> <path> response.<json|html|txt>" (the latter only if a response came); the request file
-// also holds the response status and content type
-export const exchangeAttachments = ({
-  title,
-  status,
-  contentType,
-  responseBody,
-  ...request
-}: Exchange) => {
+// Files for the report of a failed test: "<NN> <METHOD> <path> request.json" and
+// "<NN> <METHOD> <path> response.<json|html|txt>" (the latter only if a response came); the request
+// file also holds the response status and content type. NN is the 1-based position in the log, so
+// repeated requests get their own files
+export const exchangeAttachments = (
+  { title, status, contentType, responseBody, ...request }: Exchange,
+  position: number,
+) => {
   // The Qase reporter saves attachments under their names, so characters not allowed in file names
-  // become "_": "GET /login/qa_x/***" → "GET _login_qa_x____"
-  const fileName = title.replace(/[\\/:*?"<>|]/g, '_');
+  // become "_": "GET /login/qa_x/***" → "01 GET _login_qa_x____"
+  const fileName = `${String(position).padStart(2, '0')} ${title.replace(/[\\/:*?"<>|]/g, '_')}`;
   const attachments = [
     {
       name: `${fileName} request.json`,
