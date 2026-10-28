@@ -1,7 +1,12 @@
 import { test, expect as baseExpect, Page } from '@playwright/test';
 import { z } from 'zod';
 import { RequestHandler, exchangeAttachments } from '../common/api/requestHandler';
+import { PAGE_TITLES } from '../common/data/test';
 import { URLS } from '../common/data/setup';
+import { login, registerViaForm } from '../common/domains/user/api';
+import { generateUser } from '../common/domains/user/data';
+import { Customer, User } from '../common/domains/user/interfaces';
+import { CustomerSchema } from '../common/domains/user/schemas';
 import { MainPage } from '../pages/client/mainPage';
 import { RegisterPage } from '../pages/client/registerPage';
 
@@ -40,6 +45,10 @@ type ApiFixtures = {
   // HTTP client on the REST base; built on `request`, so one test keeps its session cookies and
   // tests never share them
   api: RequestHandler;
+  // A new customer registered through the form and logged in via REST. Lazy: only tests that ask for
+  // it register one. No retries inside: the false "username already exists" is left to `retries`.
+  // Registration tests don't use it, they check registration themselves.
+  customer: { user: User; customer: Customer };
 };
 
 export const baseTest = pageTest.extend<ApiFixtures>({
@@ -53,6 +62,30 @@ export const baseTest = pageTest.extend<ApiFixtures>({
         await testInfo.attach(name, { body, contentType });
       }
     }
+  },
+
+  customer: async ({ api }, use) => {
+    const user = generateUser();
+
+    const registerResponse = await registerViaForm(api, user);
+    baseExpect(
+      await registerResponse.text(),
+      `customer fixture: registration of ${user.username} did not open "${PAGE_TITLES.customerCreated}"`,
+    ).toContain(`<title>${PAGE_TITLES.customerCreated}</title>`);
+
+    const loginResponse = await login(api, user);
+    baseExpect(
+      loginResponse.status(),
+      `customer fixture: REST login of ${user.username} failed: ${await loginResponse.text()}`,
+    ).toBe(200);
+    const parsed = CustomerSchema.safeParse(await loginResponse.json());
+    if (!parsed.success) {
+      throw new Error(
+        `customer fixture: login response does not match CustomerSchema\n${z.prettifyError(parsed.error)}`,
+      );
+    }
+
+    await use({ user, customer: parsed.data });
   },
 });
 
