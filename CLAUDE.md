@@ -32,6 +32,7 @@ src/
 ├── common/
 │   ├── api/
 │   │   ├── requestHandler.ts  # RequestHandler: new builder per request, report steps, exchange log
+│   │   ├── exchangeLog.ts     # Exchange type, masking of secrets, attachment files of failed tests
 │   │   └── endpoints.ts       # all request paths (REST paths and the register.htm URL)
 │   ├── data/
 │   │   ├── setup.ts    # ENV, TENANT, BASE_URL, URLS (client, admin, api) — read from process.env
@@ -73,7 +74,9 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
   - `path()` is REST: relative to `URLS.api`, sends `Accept: application/json` (without it ParaBank answers XML). `url()` takes a full address and sends only the headers set on it — used for the `register.htm` form. Paths come from `endpoints` in `src/common/api/endpoints.ts`.
   - Terminal methods return the raw `APIResponse`: no status checks, no parsing, no retries. Everything is asserted in the test.
   - Each request is a technical report step `METHOD /path` (no query; pathname for `url()`). The handler also keeps a log of exchanges for diagnostics only; it never affects how requests are built.
-  - Request and response files are attached only when the test (attempt) fails: `<METHOD> <path> request.json` and `<METHOD> <path> response.<json|html|txt>`. Secrets are always masked as `***` in step titles, file names and contents: the password in the login path and every field whose name contains `password`. Characters not allowed in file names become `_` in attachment names.
+  - Request and response files are attached only when the test (attempt) fails: `<NN> <METHOD> <path> request.json` and `<NN> <METHOD> <path> response.<json|html|txt>`, where `NN` is the exchange's position in the log from `01`, so repeated requests don't overwrite each other (the Qase reporter saves attachments by name). Built in `src/common/api/exchangeLog.ts`.
+  - Secrets are always masked as `***` in step titles and file contents: the password in the login path and every field whose name contains `password`.
+  - File names are made safe from the path: `***` → `masked`, `\ / : * ? " < > |` → `_`, repeated `_` collapsed, leading `_` dropped. `GET /login/qa_x/***` → `01 GET login_qa_x_masked request.json`. Step titles and file contents keep `/` and `***`.
 - Registration has no REST method: it is the `register.htm` form, `GET` before `POST` in the same session.
 - Domain helpers in `src/common/domains/<domain>/api.ts` take `api: RequestHandler`, only build and send the request and return the `APIResponse`. No checks and no retries inside them.
 - Step names in tests describe meaning — a user or system action (`Register a new customer`, `Log in as the new customer`) — without the method or endpoint; HTTP details are shown by the handler's nested steps.

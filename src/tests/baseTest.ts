@@ -1,6 +1,7 @@
 import { test, expect as baseExpect, Page } from '@playwright/test';
 import { z } from 'zod';
-import { RequestHandler, exchangeAttachments } from '../common/api/requestHandler';
+import { exchangeAttachments } from '../common/api/exchangeLog';
+import { RequestHandler } from '../common/api/requestHandler';
 import { PAGE_TITLES } from '../common/data/test';
 import { URLS } from '../common/data/setup';
 import { login, registerViaForm } from '../common/domains/user/api';

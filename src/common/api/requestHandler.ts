@@ -1,23 +1,5 @@
 import { APIRequestContext, test } from '@playwright/test';
-
-type Params = Record<string, string | number | boolean>;
-type Headers = Record<string, string>;
-type Method = 'GET' | 'POST';
-
-// One request and its response as kept in the log; secrets are already masked
-export interface Exchange {
-  method: Method;
-  // "METHOD /path", also the step title
-  title: string;
-  url: string;
-  headers: Headers;
-  params: Params;
-  form?: Params;
-  body?: unknown;
-  status?: number;
-  contentType?: string;
-  responseBody?: string;
-}
+import { Exchange, Headers, Method, Params, mask } from './exchangeLog';
 
 // Longest response body kept in the log
 const MAX_BODY_LENGTH = 5000;
@@ -141,52 +123,3 @@ class RequestBuilder {
     });
   }
 }
-
-// Hides secrets: the password in a login path and the value of every field whose name contains
-// "password" (password, repeatedPassword, customer.password), at any depth
-const mask = (value: unknown): unknown => {
-  if (typeof value === 'string') return value.replace(/(\/login\/[^/]+\/)[^/?#]+/, '$1***');
-  if (Array.isArray(value)) return value.map(mask);
-  if (value && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, field]) => [
-        key,
-        /password/i.test(key) ? '***' : mask(field),
-      ]),
-    );
-  }
-  return value;
-};
-
-// Files for the report of a failed test: "<NN> <METHOD> <path> request.json" and
-// "<NN> <METHOD> <path> response.<json|html|txt>" (the latter only if a response came); the request
-// file also holds the response status and content type. NN is the 1-based position in the log, so
-// repeated requests get their own files
-export const exchangeAttachments = (
-  { title, status, contentType, responseBody, ...request }: Exchange,
-  position: number,
-) => {
-  // The Qase reporter saves attachments under their names, so characters not allowed in file names
-  // become "_": "GET /login/qa_x/***" → "01 GET _login_qa_x____"
-  const fileName = `${String(position).padStart(2, '0')} ${title.replace(/[\\/:*?"<>|]/g, '_')}`;
-  const attachments = [
-    {
-      name: `${fileName} request.json`,
-      contentType: 'application/json',
-      body: JSON.stringify({ ...request, response: { status, contentType } }, null, 2),
-    },
-  ];
-  if (responseBody !== undefined) {
-    const extension = contentType?.includes('json')
-      ? 'json'
-      : contentType?.includes('html')
-        ? 'html'
-        : 'txt';
-    attachments.push({
-      name: `${fileName} response.${extension}`,
-      contentType: contentType ?? 'text/plain',
-      body: responseBody,
-    });
-  }
-  return attachments;
-};
