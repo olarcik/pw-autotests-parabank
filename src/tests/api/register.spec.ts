@@ -6,8 +6,10 @@ import {
   openRegisterForm,
   submitRegisterForm,
 } from '../../common/domains/customer/api';
-import { Account, Customer } from '../../common/domains/customer/interfaces';
-import { AccountSchema, CustomerSchema } from '../../common/domains/customer/schemas';
+import { AccountResponse } from '../../common/domains/account/interfaces';
+import { AccountResponseSchema } from '../../common/domains/account/schemas';
+import { Customer } from '../../common/domains/customer/interfaces';
+import { CustomerSchema } from '../../common/domains/customer/schemas';
 import { NEW_CUSTOMER_ACCOUNT, PAGE_TITLES } from '../../common/data/test';
 
 test.describe('Registration', () => {
@@ -49,8 +51,8 @@ test.describe('Registration', () => {
       expect(response.headers()['content-type']).toContain('application/json');
 
       const body: unknown = await response.json();
-      expect(body).toMatchSchema(AccountSchema.array().length(1));
-      const [account] = body as Account[];
+      expect(body).toMatchSchema(AccountResponseSchema.array().length(1));
+      const [account] = body as AccountResponse[];
       expect(account).toEqual({
         id: expect.any(Number),
         customerId: customer.id,

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AccountSchema, CustomerSchema } from './schemas';
+import { CustomerSchema } from './schemas';
 
 export interface Address {
   street: string;
@@ -20,4 +20,3 @@ export interface User {
 
 // REST response types are inferred from the Zod schemas, so they never drift from them
 export type Customer = z.infer<typeof CustomerSchema>;
-export type Account = z.infer<typeof AccountSchema>;
