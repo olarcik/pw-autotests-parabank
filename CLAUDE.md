@@ -40,11 +40,12 @@ src/
 │   ├── interfaces/     # types shared by several domains (no barrel files)
 │   ├── utils/          # shared generators and helpers
 │   ├── integrations/   # email/OTP and other external services
-│   └── domains/<domain>/   # api.ts, data.ts, interfaces.ts, schemas.ts, utils.ts per business domain
+│   └── domains/<domain>/   # only data about objects: interfaces.ts, data.ts, schemas.ts
+├── services/           # Service Objects, one file per ParaBank resource: <resource>Service.ts
 ├── pages/
 │   └── client/         # <feature>Page.ts
 └── tests/
-    ├── baseTest.ts     # extended `test`: page-object fixtures (generated from pagesMap), `api` and `customer` fixtures; `expect` with toMatchSchema
+    ├── baseTest.ts     # extended `test`: page-object and service fixtures (generated from pagesMap and servicesMap), `api` and `registeredCustomer` fixtures; `expect` with toMatchSchema
     ├── api/            # API tests, Playwright project `api` (no browser)
     └── client/         # UI tests, projects chromium / firefox / webkit
 files/uploads/          # input files for upload tests
@@ -58,7 +59,7 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 
 - Import `test` and `expect` from `src/tests/baseTest.ts`, **not** from `@playwright/test`.
 - File names: `<feature>.spec.ts` (kebab-case), placed in the folder matching the app area.
-- Use page-object fixtures (`async ({ mainPage }) => ...`) instead of `new XPage(page)` inside tests.
+- Use page-object and service fixtures (`async ({ mainPage, customerService }) => ...`) instead of `new XPage(page)` or `new XService(api)` inside tests.
 - Use web-first assertions (`await expect(locator).toBeVisible()`); no `waitForTimeout` or hard sleeps.
 - Tests must be independent and runnable in parallel (`fullyParallel: true`). Create the data a test needs; don't rely on another test's state.
 - Use `test.step()` for multi-step flows to keep reports readable (steps are also sent to Qase).
@@ -69,7 +70,7 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 
 - Reference: [`docs/parabank-api.md`](docs/parabank-api.md) (endpoints, real behaviour, methods tests must never call) and the spec copy `docs/parabank-openapi.yaml`.
 - Specs live in `src/tests/api/` and run only in the Playwright project `api` (browser projects ignore `api/**`).
-- HTTP goes through the `api` fixture (`RequestHandler` from `src/common/api/requestHandler.ts`), built on the built-in `request` fixture: cookies are kept between requests of one test and never shared between tests.
+- Tests send requests through service fixtures (`customerService`, `accountService`), built on the `api` fixture (`RequestHandler` from `src/common/api/requestHandler.ts`). It is built on the built-in `request` fixture: cookies are kept between requests of one test and never shared between tests.
   - The handler holds no request state. Every `api.path(...)` / `api.url(...)` call returns a new builder (`.params()`, `.headers()`, `.form()`, `.body()`, then `.get()` / `.post()` — ParaBank has only GET and POST), so nothing leaks between requests or tests and nothing needs resetting.
   - `path()` is REST: relative to `URLS.api`, sends `Accept: application/json` (without it ParaBank answers XML). `url()` takes a full address and sends only the headers set on it — used for the `register.htm` form. Paths come from `endpoints` in `src/common/api/endpoints.ts`.
   - Terminal methods return the raw `APIResponse`: no status checks, no parsing, no retries. Everything is asserted in the test.
@@ -78,9 +79,13 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
   - Secrets are always masked as `***` in step titles and file contents: the password in the login path and every field whose name contains `password`.
   - File names are made safe from the path: `***` → `masked`, `\ / : * ? " < > |` → `_`, repeated `_` collapsed, leading `_` dropped. `GET /login/qa_x/***` → `01 GET login_qa_x_masked request.json`. Step titles and file contents keep `/` and `***`.
 - Registration has no REST method: it is the `register.htm` form, `GET` before `POST` in the same session.
-- Domain helpers in `src/common/domains/<domain>/api.ts` take `api: RequestHandler`, only build and send the request and return the `APIResponse`. No checks and no retries inside them.
+- Services live in `src/services/<resource>Service.ts`, class name `<Resource>Service`, one per ParaBank resource: a standalone class (no base class) that takes `api: RequestHandler` in the constructor.
+  - One method is one HTTP request and returns the raw `APIResponse`. No checks (`expect`), parsing or retries inside services; tests and fixtures assert. Single methods are not wrapped in `test.step`: `RequestHandler` already makes the request steps.
+  - The only composite method is `CustomerService.registerCustomer(customer)`: `GET` and `POST` of the form inside `test.step('Register a new customer')`, returns the `POST` response, no checks. Tests that check registration itself call `openRegisterForm()` and `submitRegisterForm(customer)` separately.
+  - Services import `test` from `@playwright/test`, not from `baseTest.ts` (it imports them, so that would be a circular import).
+  - Register every new service by adding it to `servicesMap` in `baseTest.ts` — fixtures and their types are generated from it.
 - Step names in tests describe meaning — a user or system action (`Register a new customer`, `Log in as the new customer`) — without the method or endpoint; HTTP details are shown by the handler's nested steps.
-- Test data can be prepared through API fixtures: `customer` registers a new customer through the form, logs in via REST and gives `{ user, customer }`. It is lazy (only tests that ask for it register one) and has no retries inside. Registration tests don't use it — they check registration themselves. In UI tests note that it uses the `request` context, not the browser: the page is not logged in.
+- Test data can be prepared through API fixtures: `registeredCustomer` registers a new customer through the form, logs in via REST to get the id and gives `{ data, response }`: `registeredCustomer.data` is the test data (`Customer`), `registeredCustomer.response.id` comes from the REST response (`CustomerResponse`). It asserts registration and login itself. It is lazy (only tests that ask for it register one) and has no retries inside. Registration tests don't use it — they check registration themselves. In UI tests note that it uses the `request` context, not the browser: the page is not logged in.
 - Check JSON bodies with `expect(body).toMatchSchema(<Zod schema>)` (from `baseTest.ts`), then compare values; amounts are JSON numbers (`515.5`, not `'515.50'`).
 
 ### Page objects
@@ -89,7 +94,7 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 - Standalone classes (no base class): take `page: Page` in the constructor and declare `page` and locators as `readonly` fields initialised there.
 - Follow the structure template strictly — don't add folders, base classes, or helpers that aren't in it.
 - Prefer user-facing locators: `getByRole`, `getByLabel`, `getByText`, `getByTestId`. Avoid CSS/XPath unless there is no alternative.
-- Page objects expose actions (`login(user)`, `openAccount(type)`). Assertions belong in tests; the only exception is a composite `expect…` method that checks the state of one page (e.g. `RegisterPage.expectFormValues(user)`). Single checks stay in tests.
+- Page objects expose actions (`login(customer)`, `openAccount(type)`). Assertions belong in tests; the only exception is a composite `expect…` method that checks the state of one page (e.g. `RegisterPage.expectFormValues(customer)`). Single checks stay in tests.
 - Register every new page object by adding it to `pagesMap` in `baseTest.ts` — fixtures and their types are generated from it.
 
 ### Data & configuration
@@ -97,7 +102,7 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 - Environment values come from `.env` (loaded by `playwright.config.ts` via dotenv). Access them through `src/common/data/setup.ts`, never `process.env` directly in tests or pages.
 - When adding a variable, update `.env.example`, `setup.ts`, the `playwright-tests` service `environment:` in `docker-compose.yml`, and the `env:` block of the `ui` job in `.github/workflows/playwright-tests.yml`.
 - Never commit credentials or `.env`. The only CI secret is `QASE_TESTOPS_API_TOKEN` (GitHub Actions secrets).
-- Generate unique data (usernames, emails) with helpers in `src/common/utils/`, not hard-coded values.
+- Generate unique data (usernames, emails) with generators in the domain's `data.ts` (`generateCustomer` in `src/common/domains/customer/data.ts`), not hard-coded values.
 - Shared static values (page titles, validation messages, expected amounts, fixed inputs) live in `src/common/data/test.ts`, grouped and commented; specs keep no module-level constants.
 
 ### Environment variables (`.env.example`)
@@ -119,6 +124,7 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 - Formatting is owned by Prettier (`.prettierrc`: single quotes, semicolons, trailing commas, width 100, 2 spaces, LF; exclusions in `.prettierignore`). Run `npm run format` instead of formatting by hand; ESLint style rules that conflict with it are disabled by `eslint-config-prettier`.
 - TypeScript strict mode; no `any` unless justified.
 - Domain types live in `src/common/domains/<domain>/interfaces.ts` and are imported directly from there (relative path). Zod schemas of API responses live in `schemas.ts` next to it; their types are declared in `interfaces.ts` as `z.infer<typeof …Schema>`, not written by hand. `src/common/interfaces/` is only for types shared by several domains. Don't create re-export (barrel) files.
+- Naming: REST response bodies are `<Name>Response`, their schemas `<Name>ResponseSchema`. The type `Customer` in the customer domain is the test data of a customer (with credentials), not a REST response.
 - Keep files LF line endings (enforced by `.gitattributes` and Prettier).
 
 ## Docker

@@ -10,19 +10,11 @@ export const AddressSchema = z.object({
 });
 
 // GET /login/{username}/{password} and GET /customers/{id}; never contains username or password
-export const CustomerSchema = z.object({
+export const CustomerResponseSchema = z.object({
   id: z.int(),
   firstName: z.string(),
   lastName: z.string(),
   address: AddressSchema,
   phoneNumber: z.string(),
   ssn: z.string(),
-});
-
-// GET /accounts/{id}; GET /customers/{id}/accounts returns an array of them
-export const AccountSchema = z.object({
-  id: z.int(),
-  customerId: z.int(),
-  type: z.enum(['CHECKING', 'SAVINGS', 'LOAN']),
-  balance: z.number(),
 });

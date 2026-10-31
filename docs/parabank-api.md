@@ -6,7 +6,7 @@ not only read from the specification.
 
 ## 1. Purpose and how to update
 
-- Single reference for API tests and API helpers in `src/common/api/` and `src/common/domains/*/api.ts`:
+- Single reference for API tests, the HTTP layer in `src/common/api/` and services in `src/services/`:
   which endpoints exist, how they really behave, and which ones tests must never call.
 - Update it when the ParaBank image digest in `docker-compose.yml` changes:
   1. `npm run docker:up`.
@@ -118,19 +118,19 @@ customer can only be created through the web form `register.htm`. The flow below
    (`@SessionAttributes`). Keep the `JSESSIONID` cookie.
 2. `POST ${BASE_URL}/register.htm` with the same cookie, `Content-Type: application/x-www-form-urlencoded`:
 
-   | Form field                 | `User` field (`src/common/domains/user`) | Required |
-   | -------------------------- | ---------------------------------------- | -------- |
-   | `customer.firstName`       | `firstName`                              | yes      |
-   | `customer.lastName`        | `lastName`                               | yes      |
-   | `customer.address.street`  | `address.street`                         | yes      |
-   | `customer.address.city`    | `address.city`                           | yes      |
-   | `customer.address.state`   | `address.state`                          | yes      |
-   | `customer.address.zipCode` | `address.zipCode`                        | yes      |
-   | `customer.phoneNumber`     | `phoneNumber`                            | no       |
-   | `customer.ssn`             | `ssn`                                    | yes      |
-   | `customer.username`        | `username`                               | yes      |
-   | `customer.password`        | `password`                               | yes      |
-   | `repeatedPassword`         | `password` (confirmation)                | yes      |
+   | Form field                 | `Customer` field (`src/common/domains/customer`) | Required |
+   | -------------------------- | ------------------------------------------------ | -------- |
+   | `customer.firstName`       | `firstName`                                      | yes      |
+   | `customer.lastName`        | `lastName`                                       | yes      |
+   | `customer.address.street`  | `address.street`                                 | yes      |
+   | `customer.address.city`    | `address.city`                                   | yes      |
+   | `customer.address.state`   | `address.state`                                  | yes      |
+   | `customer.address.zipCode` | `address.zipCode`                                | yes      |
+   | `customer.phoneNumber`     | `phoneNumber`                                    | no       |
+   | `customer.ssn`             | `ssn`                                            | yes      |
+   | `customer.username`        | `username`                                       | yes      |
+   | `customer.password`        | `password`                                       | yes      |
+   | `repeatedPassword`         | `password` (confirmation)                        | yes      |
 
 3. The new customer is logged in on that session. Get its id through REST:
    `GET /login/{username}/{password}` → `Customer.id`.
@@ -154,7 +154,8 @@ Messages for empty required fields are the same as in the UI (see `REGISTER_ERRO
 ## 6. Data models
 
 Real responses with `Accept: application/json`. Ids are JSON numbers (`int32`), amounts are JSON numbers
-written with two decimals.
+written with two decimals. Model names are from the spec; in code the bodies are `<Name>Response`
+(`CustomerResponse`, `AccountResponse`), while `Customer` is the test data.
 
 `Customer` (from `GET /login/...` and `GET /customers/{id}`; never contains username or password):
 
@@ -206,7 +207,7 @@ default account has **no transactions**: the starting `515.50` is not recorded a
 
 ## 7. Dangerous methods
 
-Tests and helpers never call these: they change the shared app for everyone (other workers, other
+Tests and services never call these: they change the shared app for everyone (other workers, other
 browsers, the healthcheck) and some cannot be undone.
 
 - `POST /cleanDB` — deletes all data.
@@ -252,7 +253,7 @@ Other:
   about 0.3–1.3% of UI registrations. With plain HTTP form posts (`GET` + `POST`, one session each,
   sequential) it did not appear in 300 registrations — not proof that HTTP is unaffected (at 0.3% that
   happens about one time in three), so API registration is treated the same way as UI: only `retries`
-  in `playwright.config.ts`, no retries in helpers, fixtures or tests.
+  in `playwright.config.ts`, no retries in services, fixtures or tests.
 - Registration without the preceding `GET register.htm` fails with `500` (section 5).
 - The server log prints usernames and passwords of REST logins in plain text.
 
@@ -260,10 +261,10 @@ Other:
 
 Stage 1 (read-only API, each test registers its own customer through the form):
 
-- Registration helper: `GET` + `POST register.htm` with `generateUser()`, success detected by the title;
+- Registration: `CustomerService.registerCustomer()` (`GET` + `POST register.htm`) with `generateCustomer()`, success detected by the title;
   then `GET /login/{username}/{password}` for the customer id.
 - `GET /customers/{id}`, `/customers/{id}/accounts`, `/accounts/{id}`, `/accounts/{id}/transactions`:
-  status, `application/json`, model shape (section 6), values match the registered user
+  status, `application/json`, model shape (section 6), values match the registered customer
   (`515.50` `CHECKING` account, empty transaction list).
 - Error cases from section 8 (wrong password, unknown ids, invalid id format).
 

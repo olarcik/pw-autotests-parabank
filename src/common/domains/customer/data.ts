@@ -1,8 +1,8 @@
 import { faker } from '@faker-js/faker';
-import { User } from './interfaces';
+import { Customer } from './interfaces';
 
 // ParaBank is a shared demo, so every generated username must be unique
-export const generateUser = (overrides: Partial<User> = {}): User => ({
+export const generateCustomer = (overrides: Partial<Customer> = {}): Customer => ({
   firstName: faker.person.firstName(),
   lastName: faker.person.lastName(),
   address: {
