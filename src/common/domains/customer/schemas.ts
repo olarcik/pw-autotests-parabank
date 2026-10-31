@@ -10,7 +10,7 @@ export const AddressSchema = z.object({
 });
 
 // GET /login/{username}/{password} and GET /customers/{id}; never contains username or password
-export const CustomerSchema = z.object({
+export const CustomerResponseSchema = z.object({
   id: z.int(),
   firstName: z.string(),
   lastName: z.string(),

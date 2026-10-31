@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CustomerSchema } from './schemas';
+import { CustomerResponseSchema } from './schemas';
 
 export interface Address {
   street: string;
@@ -18,5 +18,5 @@ export interface User {
   password: string;
 }
 
-// REST response types are inferred from the Zod schemas, so they never drift from them
-export type Customer = z.infer<typeof CustomerSchema>;
+// Parsed body of a REST response (not Playwright's APIResponse), inferred from its Zod schema
+export type CustomerResponse = z.infer<typeof CustomerResponseSchema>;

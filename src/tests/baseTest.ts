@@ -6,8 +6,8 @@ import { PAGE_TITLES } from '../common/data/test';
 import { URLS } from '../common/data/setup';
 import { login, registerViaForm } from '../common/domains/customer/api';
 import { generateUser } from '../common/domains/customer/data';
-import { Customer, User } from '../common/domains/customer/interfaces';
-import { CustomerSchema } from '../common/domains/customer/schemas';
+import { CustomerResponse, User } from '../common/domains/customer/interfaces';
+import { CustomerResponseSchema } from '../common/domains/customer/schemas';
 import { MainPage } from '../pages/client/mainPage';
 import { RegisterPage } from '../pages/client/registerPage';
 
@@ -49,7 +49,7 @@ type ApiFixtures = {
   // A new customer registered through the form and logged in via REST. Lazy: only tests that ask for
   // it register one. No retries inside: the false "username already exists" is left to `retries`.
   // Registration tests don't use it, they check registration themselves.
-  customer: { user: User; customer: Customer };
+  customer: { user: User; customer: CustomerResponse };
 };
 
 export const baseTest = pageTest.extend<ApiFixtures>({
@@ -82,10 +82,10 @@ export const baseTest = pageTest.extend<ApiFixtures>({
       loginResponse.status(),
       `customer fixture: REST login of ${user.username} failed: ${await loginResponse.text()}`,
     ).toBe(200);
-    const parsed = CustomerSchema.safeParse(await loginResponse.json());
+    const parsed = CustomerResponseSchema.safeParse(await loginResponse.json());
     if (!parsed.success) {
       throw new Error(
-        `customer fixture: login response does not match CustomerSchema\n${z.prettifyError(parsed.error)}`,
+        `customer fixture: login response does not match CustomerResponseSchema\n${z.prettifyError(parsed.error)}`,
       );
     }
 
