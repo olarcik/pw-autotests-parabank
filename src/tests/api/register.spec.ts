@@ -1,13 +1,13 @@
 import { test, expect, qase } from '../baseTest';
-import { generateUser } from '../../common/domains/user/data';
+import { generateUser } from '../../common/domains/customer/data';
 import {
   getAccounts,
   login,
   openRegisterForm,
   submitRegisterForm,
-} from '../../common/domains/user/api';
-import { Account, Customer } from '../../common/domains/user/interfaces';
-import { AccountSchema, CustomerSchema } from '../../common/domains/user/schemas';
+} from '../../common/domains/customer/api';
+import { Account, Customer } from '../../common/domains/customer/interfaces';
+import { AccountSchema, CustomerSchema } from '../../common/domains/customer/schemas';
 import { NEW_CUSTOMER_ACCOUNT, PAGE_TITLES } from '../../common/data/test';
 
 test.describe('Registration', () => {

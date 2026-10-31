@@ -4,10 +4,10 @@ import { exchangeAttachments } from '../common/api/exchangeLog';
 import { RequestHandler } from '../common/api/requestHandler';
 import { PAGE_TITLES } from '../common/data/test';
 import { URLS } from '../common/data/setup';
-import { login, registerViaForm } from '../common/domains/user/api';
-import { generateUser } from '../common/domains/user/data';
-import { Customer, User } from '../common/domains/user/interfaces';
-import { CustomerSchema } from '../common/domains/user/schemas';
+import { login, registerViaForm } from '../common/domains/customer/api';
+import { generateUser } from '../common/domains/customer/data';
+import { Customer, User } from '../common/domains/customer/interfaces';
+import { CustomerSchema } from '../common/domains/customer/schemas';
 import { MainPage } from '../pages/client/mainPage';
 import { RegisterPage } from '../pages/client/registerPage';
 

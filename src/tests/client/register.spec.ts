@@ -1,5 +1,5 @@
 import { test, expect, qase } from '../baseTest';
-import { generateUser } from '../../common/domains/user/data';
+import { generateUser } from '../../common/domains/customer/data';
 import {
   ACCOUNT_SERVICES,
   CASE_MISMATCHED_PASSWORDS,

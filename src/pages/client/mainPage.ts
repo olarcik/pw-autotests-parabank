@@ -1,6 +1,6 @@
 import { Locator, Page } from '@playwright/test';
 import { URLS } from '../../common/data/setup';
-import { User } from '../../common/domains/user/interfaces';
+import { User } from '../../common/domains/customer/interfaces';
 
 export class MainPage {
   readonly page: Page;
