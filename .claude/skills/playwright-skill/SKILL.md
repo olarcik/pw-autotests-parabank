@@ -21,7 +21,7 @@ The browser is for **discovery and debugging only**. Every result ends up as cod
 1. Navigate to the page and take a snapshot.
 2. Pick locators in this order: `getByRole` (+ `name`, `exact: true`), `getByLabel`, `getByText`, `getByTestId`. CSS/XPath only if nothing else exists — say why.
 3. **Check uniqueness.** ParaBank repeats links in header and footer (e.g. "About Us"). If a role+name appears more than once in the snapshot, scope it to its container (`page.locator('#headerPanel').getByRole(...)`) instead of using `.first()`.
-4. Write `src/pages/client/<feature>Page.ts`: standalone class (no base class), `readonly page` and `readonly` locators set in the constructor, action methods (`login(user)`, `openAccount(type)`), no assertions.
+4. Write `src/pages/client/<feature>Page.ts`: standalone class (no base class), `readonly page` and `readonly` locators set in the constructor, action methods (`login(customer)`, `openAccount(type)`), no assertions.
 5. Add it to `pagesMap` in `src/tests/baseTest.ts`.
 
 ## Write a spec from a scenario
