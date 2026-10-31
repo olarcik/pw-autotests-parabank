@@ -29,7 +29,7 @@ The browser is for **discovery and debugging only**. Every result ends up as cod
 1. Walk through the flow in the browser step by step, snapshotting after each step to confirm the expected result.
 2. Turn it into `src/tests/client/<feature>.spec.ts`: import `test, expect, qase` from `../baseTest`, use page-object fixtures, one `test.step` per scenario step, web-first assertions (`toBeVisible`, `toHaveText`, `toHaveURL`), no `waitForTimeout`.
 3. If the scenario has a Qase case, add `qase.id(<id>)` as the first line (see `qase-skill` — "automate case N" uses both).
-4. Data: the local ParaBank database lives in the container and is shared by tests running in parallel — register a fresh user with generated data (helpers in `src/common/utils/`) rather than relying on existing accounts. Never hard-code credentials.
+4. Data: the local ParaBank database lives in the container and is shared by tests running in parallel — register a fresh user with generated data (`generateCustomer` in `src/common/domains/customer/data.ts`) rather than relying on existing accounts. Never hard-code credentials.
 5. Run `npm run lint`, `npm run typecheck`, `npm run format:check`, then `npx playwright test <spec> --project=chromium` (ParaBank must be up: `npm run docker:up`). Fix until green.
 
 ## Debug a failing test
