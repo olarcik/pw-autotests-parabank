@@ -1,5 +1,5 @@
 import { test, expect, qase } from '../baseTest';
-import { generateUser } from '../../common/domains/customer/data';
+import { generateCustomer } from '../../common/domains/customer/data';
 import {
   getAccounts,
   login,
@@ -17,18 +17,18 @@ test.describe('Registration', () => {
     qase.id(13);
     qase.fields({ severity: 'critical', priority: 'high', layer: 'api' });
 
-    const user = generateUser();
+    const customer = generateCustomer();
 
     await test.step('Register a new customer', async () => {
       await openRegisterForm(api);
-      const response = await submitRegisterForm(api, user);
+      const response = await submitRegisterForm(api, customer);
       expect(response.status()).toBe(200);
       expect(response.headers()['content-type']).toContain('text/html');
       expect(await response.text()).toContain(`<title>${PAGE_TITLES.customerCreated}</title>`);
     });
 
     const customerResponse = await test.step('Log in as the new customer', async () => {
-      const response = await login(api, user);
+      const response = await login(api, customer);
       expect(response.status()).toBe(200);
       expect(response.headers()['content-type']).toContain('application/json');
 
@@ -36,11 +36,11 @@ test.describe('Registration', () => {
       expect(body).toMatchSchema(CustomerResponseSchema);
       expect(body).toEqual({
         id: expect.any(Number),
-        firstName: user.firstName,
-        lastName: user.lastName,
-        address: user.address,
-        phoneNumber: user.phoneNumber,
-        ssn: user.ssn,
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        address: customer.address,
+        phoneNumber: customer.phoneNumber,
+        ssn: customer.ssn,
       });
       return body as CustomerResponse;
     });

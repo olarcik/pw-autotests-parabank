@@ -5,8 +5,8 @@ import { RequestHandler } from '../common/api/requestHandler';
 import { PAGE_TITLES } from '../common/data/test';
 import { URLS } from '../common/data/setup';
 import { login, registerViaForm } from '../common/domains/customer/api';
-import { generateUser } from '../common/domains/customer/data';
-import { CustomerResponse, User } from '../common/domains/customer/interfaces';
+import { generateCustomer } from '../common/domains/customer/data';
+import { Customer, CustomerResponse } from '../common/domains/customer/interfaces';
 import { CustomerResponseSchema } from '../common/domains/customer/schemas';
 import { MainPage } from '../pages/client/mainPage';
 import { RegisterPage } from '../pages/client/registerPage';
@@ -49,7 +49,7 @@ type ApiFixtures = {
   // A new customer registered through the form and logged in via REST. Lazy: only tests that ask for
   // it register one. No retries inside: the false "username already exists" is left to `retries`.
   // Registration tests don't use it, they check registration themselves.
-  customer: { user: User; customer: CustomerResponse };
+  customer: { data: Customer; response: CustomerResponse };
 };
 
 export const baseTest = pageTest.extend<ApiFixtures>({
@@ -69,18 +69,18 @@ export const baseTest = pageTest.extend<ApiFixtures>({
   },
 
   customer: async ({ api }, use) => {
-    const user = generateUser();
+    const customer = generateCustomer();
 
-    const registerResponse = await registerViaForm(api, user);
+    const registerResponse = await registerViaForm(api, customer);
     baseExpect(
       await registerResponse.text(),
-      `customer fixture: registration of ${user.username} did not open "${PAGE_TITLES.customerCreated}"`,
+      `customer fixture: registration of ${customer.username} did not open "${PAGE_TITLES.customerCreated}"`,
     ).toContain(`<title>${PAGE_TITLES.customerCreated}</title>`);
 
-    const loginResponse = await login(api, user);
+    const loginResponse = await login(api, customer);
     baseExpect(
       loginResponse.status(),
-      `customer fixture: REST login of ${user.username} failed: ${await loginResponse.text()}`,
+      `customer fixture: REST login of ${customer.username} failed: ${await loginResponse.text()}`,
     ).toBe(200);
     const parsed = CustomerResponseSchema.safeParse(await loginResponse.json());
     if (!parsed.success) {
@@ -89,7 +89,7 @@ export const baseTest = pageTest.extend<ApiFixtures>({
       );
     }
 
-    await use({ user, customer: parsed.data });
+    await use({ data: customer, response: parsed.data });
   },
 });
 

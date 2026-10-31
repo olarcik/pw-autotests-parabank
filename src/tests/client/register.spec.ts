@@ -1,5 +1,5 @@
 import { test, expect, qase } from '../baseTest';
-import { generateUser } from '../../common/domains/customer/data';
+import { generateCustomer } from '../../common/domains/customer/data';
 import {
   ACCOUNT_SERVICES,
   CASE_MISMATCHED_PASSWORDS,
@@ -66,7 +66,7 @@ test.describe('Registration', () => {
   test('Password and Confirm fields mask input', async ({ mainPage, registerPage }) => {
     qase.id(3);
     qase.fields({ severity: 'minor', priority: 'low', layer: 'e2e' });
-    const user = generateUser();
+    const customer = generateCustomer();
 
     await test.step('Open the Register page', async () => {
       await mainPage.openRegisterPage();
@@ -74,23 +74,23 @@ test.describe('Registration', () => {
     });
 
     await test.step('Type any text into Password and Confirm', async () => {
-      await registerPage.passwordInput.fill(user.password);
-      await registerPage.confirmPasswordInput.fill(user.password);
+      await registerPage.passwordInput.fill(customer.password);
+      await registerPage.confirmPasswordInput.fill(customer.password);
       await expect(registerPage.passwordInput).toHaveAttribute('type', 'password');
       await expect(registerPage.confirmPasswordInput).toHaveAttribute('type', 'password');
     });
 
     await test.step('Type any text into another field, e.g. First Name', async () => {
-      await registerPage.firstNameInput.fill(user.firstName);
+      await registerPage.firstNameInput.fill(customer.firstName);
       await expect(registerPage.firstNameInput).toHaveAttribute('type', 'text');
-      await expect(registerPage.firstNameInput).toHaveValue(user.firstName);
+      await expect(registerPage.firstNameInput).toHaveValue(customer.firstName);
     });
   });
 
   test('Successful registration with valid data', async ({ page, mainPage, registerPage }) => {
     qase.id(4);
     qase.fields({ severity: 'critical', priority: 'high', layer: 'e2e' });
-    const user = generateUser();
+    const customer = generateCustomer();
 
     await test.step('Open the Register page', async () => {
       await mainPage.openRegisterPage();
@@ -98,22 +98,22 @@ test.describe('Registration', () => {
     });
 
     await test.step('Fill in all fields with valid data', async () => {
-      await registerPage.fillForm(user);
-      await registerPage.expectFormValues(user);
-      await expect(registerPage.passwordInput).toHaveValue(user.password);
-      await expect(registerPage.confirmPasswordInput).toHaveValue(user.password);
+      await registerPage.fillForm(customer);
+      await registerPage.expectFormValues(customer);
+      await expect(registerPage.passwordInput).toHaveValue(customer.password);
+      await expect(registerPage.confirmPasswordInput).toHaveValue(customer.password);
     });
 
     await test.step('Click "Register"', async () => {
       await registerPage.registerButton.click();
       await expect(page).toHaveTitle(PAGE_TITLES.customerCreated);
-      await expect(registerPage.welcomeHeading).toHaveText(`Welcome ${user.username}`);
+      await expect(registerPage.welcomeHeading).toHaveText(`Welcome ${customer.username}`);
       await expect(registerPage.successMessage).toBeVisible();
     });
 
     await test.step('Check the left panel', async () => {
       await expect(mainPage.customerWelcome).toHaveText(
-        `Welcome ${user.firstName} ${user.lastName}`,
+        `Welcome ${customer.firstName} ${customer.lastName}`,
       );
       await expect(mainPage.accountServicesHeading).toBeVisible();
       await expect(mainPage.accountServicesLinks).toHaveText(ACCOUNT_SERVICES);
@@ -123,13 +123,13 @@ test.describe('Registration', () => {
   test('Registered user can log in', async ({ page, mainPage, registerPage }) => {
     qase.id(5);
     qase.fields({ severity: 'critical', priority: 'high', layer: 'e2e' });
-    const user = generateUser();
+    const customer = generateCustomer();
 
     await test.step('Register a new user with valid data and a unique username', async () => {
       await mainPage.openRegisterPage();
       await expect(registerPage.heading).toBeVisible();
-      await registerPage.register(user);
-      await expect(registerPage.welcomeHeading).toHaveText(`Welcome ${user.username}`);
+      await registerPage.register(customer);
+      await expect(registerPage.welcomeHeading).toHaveText(`Welcome ${customer.username}`);
       await expect(registerPage.successMessage).toBeVisible();
     });
 
@@ -141,11 +141,11 @@ test.describe('Registration', () => {
     });
 
     await test.step('Log in with the new username and password', async () => {
-      await mainPage.login(user);
+      await mainPage.login(customer);
       await expect(page).toHaveTitle(PAGE_TITLES.accountsOverview);
       await expect(mainPage.accountsOverviewHeading).toBeVisible();
       await expect(mainPage.customerWelcome).toHaveText(
-        `Welcome ${user.firstName} ${user.lastName}`,
+        `Welcome ${customer.firstName} ${customer.lastName}`,
       );
     });
   });
@@ -153,13 +153,13 @@ test.describe('Registration', () => {
   test('New customer gets a default account', async ({ page, mainPage, registerPage }) => {
     qase.id(6);
     qase.fields({ severity: 'normal', priority: 'medium', layer: 'e2e' });
-    const user = generateUser();
+    const customer = generateCustomer();
 
     await test.step('Register a new user with valid data and a unique username', async () => {
       await mainPage.openRegisterPage();
       await expect(registerPage.heading).toBeVisible();
-      await registerPage.register(user);
-      await expect(registerPage.welcomeHeading).toHaveText(`Welcome ${user.username}`);
+      await registerPage.register(customer);
+      await expect(registerPage.welcomeHeading).toHaveText(`Welcome ${customer.username}`);
       await expect(registerPage.successMessage).toBeVisible();
     });
 
@@ -224,7 +224,7 @@ test.describe('Registration', () => {
         await mainPage.open();
         await mainPage.openRegisterPage();
         await expect(registerPage.heading).toBeVisible();
-        await registerPage.fillForm(generateUser());
+        await registerPage.fillForm(generateCustomer());
         await input.clear();
         await registerPage.registerButton.click();
         await expect(page).toHaveTitle(PAGE_TITLES.register);
@@ -237,16 +237,16 @@ test.describe('Registration', () => {
   test('Entered values are kept after failed submit', async ({ page, mainPage, registerPage }) => {
     qase.id(9);
     qase.fields({ severity: 'minor', priority: 'low', layer: 'e2e' });
-    const user = generateUser();
-    const mismatchedPassword = generateUser().password;
+    const customer = generateCustomer();
+    const mismatchedPassword = generateCustomer().password;
 
     await test.step('Open the Register page and fill all fields with valid data, but enter a different value in Confirm', async () => {
       await mainPage.openRegisterPage();
       await expect(registerPage.heading).toBeVisible();
-      await registerPage.fillForm(user);
+      await registerPage.fillForm(customer);
       await registerPage.confirmPasswordInput.fill(mismatchedPassword);
-      await registerPage.expectFormValues(user);
-      await expect(registerPage.passwordInput).toHaveValue(user.password);
+      await registerPage.expectFormValues(customer);
+      await expect(registerPage.passwordInput).toHaveValue(customer.password);
       await expect(registerPage.confirmPasswordInput).toHaveValue(mismatchedPassword);
     });
 
@@ -257,7 +257,7 @@ test.describe('Registration', () => {
     });
 
     await test.step('Check field values', async () => {
-      await registerPage.expectFormValues(user);
+      await registerPage.expectFormValues(customer);
       await expect(registerPage.passwordInput).toBeEmpty();
       await expect(registerPage.confirmPasswordInput).toBeEmpty();
     });
@@ -266,20 +266,20 @@ test.describe('Registration', () => {
   test('Mismatched passwords show error', async ({ page, mainPage, registerPage }) => {
     qase.id(10);
     qase.fields({ severity: 'major', priority: 'high', layer: 'e2e' });
-    const user = generateUser();
-    const mismatchedPassword = generateUser().password;
+    const customer = generateCustomer();
+    const mismatchedPassword = generateCustomer().password;
 
     await test.step('Open the Register page and fill all fields with valid data', async () => {
       await mainPage.openRegisterPage();
       await expect(registerPage.heading).toBeVisible();
-      await registerPage.fillForm(user);
-      await registerPage.expectFormValues(user);
+      await registerPage.fillForm(customer);
+      await registerPage.expectFormValues(customer);
     });
 
     await test.step('Enter different values in Password and Confirm', async () => {
-      await registerPage.passwordInput.fill(user.password);
+      await registerPage.passwordInput.fill(customer.password);
       await registerPage.confirmPasswordInput.fill(mismatchedPassword);
-      await expect(registerPage.passwordInput).toHaveValue(user.password);
+      await expect(registerPage.passwordInput).toHaveValue(customer.password);
       await expect(registerPage.confirmPasswordInput).toHaveValue(mismatchedPassword);
     });
 
@@ -295,13 +295,13 @@ test.describe('Registration', () => {
     qase.id(11);
     qase.fields({ severity: 'normal', priority: 'medium', layer: 'e2e' });
     const { password, confirmPassword } = CASE_MISMATCHED_PASSWORDS;
-    const user = generateUser({ password });
+    const customer = generateCustomer({ password });
 
     await test.step('Open the Register page and fill all fields with valid data', async () => {
       await mainPage.openRegisterPage();
       await expect(registerPage.heading).toBeVisible();
-      await registerPage.fillForm(user);
-      await registerPage.expectFormValues(user);
+      await registerPage.fillForm(customer);
+      await registerPage.expectFormValues(customer);
     });
 
     await test.step('Enter passwords that differ only in letter case', async () => {
@@ -322,21 +322,21 @@ test.describe('Registration', () => {
   test('Enter key submits the Register form', async ({ page, mainPage, registerPage }) => {
     qase.id(12);
     qase.fields({ severity: 'minor', priority: 'low', layer: 'e2e' });
-    const user = generateUser();
+    const customer = generateCustomer();
 
     await test.step('Open the Register page and fill all fields with valid data and a unique username', async () => {
       await mainPage.openRegisterPage();
       await expect(registerPage.heading).toBeVisible();
-      await registerPage.fillForm(user);
-      await registerPage.expectFormValues(user);
-      await expect(registerPage.passwordInput).toHaveValue(user.password);
-      await expect(registerPage.confirmPasswordInput).toHaveValue(user.password);
+      await registerPage.fillForm(customer);
+      await registerPage.expectFormValues(customer);
+      await expect(registerPage.passwordInput).toHaveValue(customer.password);
+      await expect(registerPage.confirmPasswordInput).toHaveValue(customer.password);
     });
 
     await test.step('Focus the Confirm field and press Enter', async () => {
       await registerPage.submitByEnter();
       await expect(page).toHaveTitle(PAGE_TITLES.customerCreated);
-      await expect(registerPage.welcomeHeading).toHaveText(`Welcome ${user.username}`);
+      await expect(registerPage.welcomeHeading).toHaveText(`Welcome ${customer.username}`);
     });
   });
 });

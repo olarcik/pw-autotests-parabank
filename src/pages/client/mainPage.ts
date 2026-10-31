@@ -1,6 +1,6 @@
 import { Locator, Page } from '@playwright/test';
 import { URLS } from '../../common/data/setup';
-import { User } from '../../common/domains/customer/interfaces';
+import { Customer } from '../../common/domains/customer/interfaces';
 
 export class MainPage {
   readonly page: Page;
@@ -71,9 +71,9 @@ export class MainPage {
     await this.logOutLink.click();
   }
 
-  async login(user: User) {
-    await this.loginUsernameInput.fill(user.username);
-    await this.loginPasswordInput.fill(user.password);
+  async login(customer: Customer) {
+    await this.loginUsernameInput.fill(customer.username);
+    await this.loginPasswordInput.fill(customer.password);
     await this.loginButton.click();
   }
 }

@@ -8,7 +8,8 @@ export interface Address {
   zipCode: string;
 }
 
-export interface User {
+// Test data of a customer: registration form fields and credentials (the REST body is CustomerResponse)
+export interface Customer {
   firstName: string;
   lastName: string;
   address: Address;

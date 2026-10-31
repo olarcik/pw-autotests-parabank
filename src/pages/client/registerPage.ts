@@ -1,5 +1,5 @@
 import { expect, Locator, Page } from '@playwright/test';
-import { User } from '../../common/domains/customer/interfaces';
+import { Customer } from '../../common/domains/customer/interfaces';
 
 export class RegisterPage {
   readonly page: Page;
@@ -66,22 +66,22 @@ export class RegisterPage {
     ];
   }
 
-  async fillForm(user: User) {
-    await this.firstNameInput.fill(user.firstName);
-    await this.lastNameInput.fill(user.lastName);
-    await this.addressInput.fill(user.address.street);
-    await this.cityInput.fill(user.address.city);
-    await this.stateInput.fill(user.address.state);
-    await this.zipCodeInput.fill(user.address.zipCode);
-    await this.phoneInput.fill(user.phoneNumber);
-    await this.ssnInput.fill(user.ssn);
-    await this.usernameInput.fill(user.username);
-    await this.passwordInput.fill(user.password);
-    await this.confirmPasswordInput.fill(user.password);
+  async fillForm(customer: Customer) {
+    await this.firstNameInput.fill(customer.firstName);
+    await this.lastNameInput.fill(customer.lastName);
+    await this.addressInput.fill(customer.address.street);
+    await this.cityInput.fill(customer.address.city);
+    await this.stateInput.fill(customer.address.state);
+    await this.zipCodeInput.fill(customer.address.zipCode);
+    await this.phoneInput.fill(customer.phoneNumber);
+    await this.ssnInput.fill(customer.ssn);
+    await this.usernameInput.fill(customer.username);
+    await this.passwordInput.fill(customer.password);
+    await this.confirmPasswordInput.fill(customer.password);
   }
 
-  async register(user: User) {
-    await this.fillForm(user);
+  async register(customer: Customer) {
+    await this.fillForm(customer);
     await this.registerButton.click();
   }
 
@@ -90,15 +90,15 @@ export class RegisterPage {
   }
 
   // Checks every non-password field; password fields are asserted by each test as they differ
-  async expectFormValues(user: User) {
-    await expect(this.firstNameInput).toHaveValue(user.firstName);
-    await expect(this.lastNameInput).toHaveValue(user.lastName);
-    await expect(this.addressInput).toHaveValue(user.address.street);
-    await expect(this.cityInput).toHaveValue(user.address.city);
-    await expect(this.stateInput).toHaveValue(user.address.state);
-    await expect(this.zipCodeInput).toHaveValue(user.address.zipCode);
-    await expect(this.phoneInput).toHaveValue(user.phoneNumber);
-    await expect(this.ssnInput).toHaveValue(user.ssn);
-    await expect(this.usernameInput).toHaveValue(user.username);
+  async expectFormValues(customer: Customer) {
+    await expect(this.firstNameInput).toHaveValue(customer.firstName);
+    await expect(this.lastNameInput).toHaveValue(customer.lastName);
+    await expect(this.addressInput).toHaveValue(customer.address.street);
+    await expect(this.cityInput).toHaveValue(customer.address.city);
+    await expect(this.stateInput).toHaveValue(customer.address.state);
+    await expect(this.zipCodeInput).toHaveValue(customer.address.zipCode);
+    await expect(this.phoneInput).toHaveValue(customer.phoneNumber);
+    await expect(this.ssnInput).toHaveValue(customer.ssn);
+    await expect(this.usernameInput).toHaveValue(customer.username);
   }
 }
