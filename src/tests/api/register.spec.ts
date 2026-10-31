@@ -1,11 +1,5 @@
 import { test, expect, qase } from '../baseTest';
 import { generateCustomer } from '../../common/domains/customer/data';
-import {
-  getAccounts,
-  login,
-  openRegisterForm,
-  submitRegisterForm,
-} from '../../common/domains/customer/api';
 import { AccountResponse } from '../../common/domains/account/interfaces';
 import { AccountResponseSchema } from '../../common/domains/account/schemas';
 import { CustomerResponse } from '../../common/domains/customer/interfaces';
@@ -13,22 +7,22 @@ import { CustomerResponseSchema } from '../../common/domains/customer/schemas';
 import { NEW_CUSTOMER_ACCOUNT, PAGE_TITLES } from '../../common/data/test';
 
 test.describe('Registration', () => {
-  test('Successful registration via API', async ({ api }) => {
+  test('Successful registration via API', async ({ customerService, accountService }) => {
     qase.id(13);
     qase.fields({ severity: 'critical', priority: 'high', layer: 'api' });
 
     const customer = generateCustomer();
 
     await test.step('Register a new customer', async () => {
-      await openRegisterForm(api);
-      const response = await submitRegisterForm(api, customer);
+      await customerService.openRegisterForm();
+      const response = await customerService.submitRegisterForm(customer);
       expect(response.status()).toBe(200);
       expect(response.headers()['content-type']).toContain('text/html');
       expect(await response.text()).toContain(`<title>${PAGE_TITLES.customerCreated}</title>`);
     });
 
     const customerResponse = await test.step('Log in as the new customer', async () => {
-      const response = await login(api, customer);
+      const response = await customerService.login(customer);
       expect(response.status()).toBe(200);
       expect(response.headers()['content-type']).toContain('application/json');
 
@@ -46,7 +40,7 @@ test.describe('Registration', () => {
     });
 
     await test.step('Check the default account', async () => {
-      const response = await getAccounts(api, customerResponse.id);
+      const response = await accountService.getAccounts(customerResponse.id);
       expect(response.status()).toBe(200);
       expect(response.headers()['content-type']).toContain('application/json');
 

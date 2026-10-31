@@ -4,12 +4,13 @@ import { exchangeAttachments } from '../common/api/exchangeLog';
 import { RequestHandler } from '../common/api/requestHandler';
 import { PAGE_TITLES } from '../common/data/test';
 import { URLS } from '../common/data/setup';
-import { login, registerViaForm } from '../common/domains/customer/api';
 import { generateCustomer } from '../common/domains/customer/data';
 import { Customer, CustomerResponse } from '../common/domains/customer/interfaces';
 import { CustomerResponseSchema } from '../common/domains/customer/schemas';
 import { MainPage } from '../pages/client/mainPage';
 import { RegisterPage } from '../pages/client/registerPage';
+import { AccountService } from '../services/accountService';
+import { CustomerService } from '../services/customerService';
 
 const pagesMap = {
   mainPage: MainPage,
@@ -42,14 +43,26 @@ const pageTest = test.extend<PageFixtures>({
   ),
 });
 
-type ApiFixtures = {
+const servicesMap = {
+  customerService: CustomerService,
+  accountService: AccountService,
+  // add more services here as needed
+};
+
+// Dynamically derive fixture types from servicesMap, the same way as PageFixtures from pagesMap
+type ServiceFixtures = {
+  [Key in keyof typeof servicesMap]: InstanceType<(typeof servicesMap)[Key]>;
+};
+
+type ApiFixtures = ServiceFixtures & {
   // HTTP client on the REST base; built on `request`, so one test keeps its session cookies and
   // tests never share them
   api: RequestHandler;
-  // A new customer registered through the form and logged in via REST. Lazy: only tests that ask for
-  // it register one. No retries inside: the false "username already exists" is left to `retries`.
-  // Registration tests don't use it, they check registration themselves.
-  customer: { data: Customer; response: CustomerResponse };
+  // A new customer registered through the form and logged in via REST to get its id. Lazy: registers
+  // one only in tests that ask for it. Registration tests don't use it, they check registration
+  // themselves. The browser is not logged in. No retries inside: the false "username already exists"
+  // is left to `retries`.
+  registeredCustomer: { data: Customer; response: CustomerResponse };
 };
 
 export const baseTest = pageTest.extend<ApiFixtures>({
@@ -68,24 +81,39 @@ export const baseTest = pageTest.extend<ApiFixtures>({
     }
   },
 
-  customer: async ({ api }, use) => {
+  // Object.entries loses the class types; ServiceFixtures restores them for tests
+  ...Object.entries(servicesMap).reduce(
+    (fixtures, [key, serviceClass]) => {
+      fixtures[key] = async ({ api }, use) => {
+        await use(new (serviceClass as new (a: RequestHandler) => unknown)(api));
+      };
+
+      return fixtures;
+    },
+    {} as Record<
+      string,
+      (opts: { api: RequestHandler }, use: (instance: unknown) => Promise<void>) => Promise<void>
+    >,
+  ),
+
+  registeredCustomer: async ({ customerService }, use) => {
     const customer = generateCustomer();
 
-    const registerResponse = await registerViaForm(api, customer);
+    const registerResponse = await customerService.registerCustomer(customer);
     baseExpect(
       await registerResponse.text(),
-      `customer fixture: registration of ${customer.username} did not open "${PAGE_TITLES.customerCreated}"`,
+      `registeredCustomer fixture: registration of ${customer.username} did not open "${PAGE_TITLES.customerCreated}"`,
     ).toContain(`<title>${PAGE_TITLES.customerCreated}</title>`);
 
-    const loginResponse = await login(api, customer);
+    const loginResponse = await customerService.login(customer);
     baseExpect(
       loginResponse.status(),
-      `customer fixture: REST login of ${customer.username} failed: ${await loginResponse.text()}`,
+      `registeredCustomer fixture: REST login of ${customer.username} failed: ${await loginResponse.text()}`,
     ).toBe(200);
     const parsed = CustomerResponseSchema.safeParse(await loginResponse.json());
     if (!parsed.success) {
       throw new Error(
-        `customer fixture: login response does not match CustomerResponseSchema\n${z.prettifyError(parsed.error)}`,
+        `registeredCustomer fixture: login response does not match CustomerResponseSchema\n${z.prettifyError(parsed.error)}`,
       );
     }
 
