@@ -40,7 +40,8 @@ src/
 │   ├── interfaces/     # types shared by several domains (no barrel files)
 │   ├── utils/          # shared generators and helpers
 │   │   └── matchers.ts # schemaMatchers: custom expect matcher toMatchSchema
-│   ├── integrations/   # email/OTP and other external services
+│   ├── integrations/
+│   │   └── external-service/  # external services (placeholder, kept with .gitkeep)
 │   └── domains/<domain>/   # only data about objects: interfaces.ts, data.ts, schemas.ts
 ├── services/           # Service Objects, one file per ParaBank resource: <resource>Service.ts
 ├── pages/
