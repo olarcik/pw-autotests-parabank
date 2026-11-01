@@ -9,7 +9,7 @@ The framework is built incrementally: folders exist up front (kept with `.gitkee
 npm test                                   # playwright test: all projects — 3 browsers + api (needs a running app)
 npx playwright test --project=chromium     # single browser
 npx playwright test --project=api          # API tests only (no browser)
-npx playwright test src/tests/client       # single folder
+npx playwright test src/tests/ui           # single folder
 npx playwright test -g "login"             # by test title
 npm run lint                               # ESLint (typescript-eslint + eslint-plugin-playwright + eslint-config-prettier)
 npm run typecheck                          # tsc --noEmit
@@ -35,7 +35,7 @@ src/
 │   │   ├── exchangeLog.ts     # Exchange type, masking of secrets, attachExchanges: attachment files of failed tests
 │   │   └── endpoints.ts       # all request paths (REST paths and the register.htm URL)
 │   ├── data/
-│   │   ├── setup.ts    # ENV, TENANT, BASE_URL, URLS (client, admin, api) — read from process.env
+│   │   ├── setup.ts    # ENV, TENANT, BASE_URL, URLS (app, api) — read from process.env
 │   │   └── test.ts     # shared static test values
 │   ├── interfaces/     # types shared by several domains (no barrel files)
 │   ├── utils/          # shared generators and helpers
@@ -44,12 +44,11 @@ src/
 │   │   └── external-service/  # external services (placeholder, kept with .gitkeep)
 │   └── domains/<domain>/   # only data about objects: interfaces.ts, data.ts, schemas.ts
 ├── services/           # Service Objects, one file per ParaBank resource: <resource>Service.ts
-├── pages/
-│   └── client/         # <feature>Page.ts: mainPage (header, login, left panel), registerPage, accountsOverviewPage
+├── pages/              # <feature>Page.ts: mainPage (header, login, left panel), registerPage, accountsOverviewPage
 └── tests/
     ├── baseTest.ts     # extended `test`: page-object and service fixtures (generated from pagesMap and servicesMap), `api` and `registeredCustomer` fixtures; `expect` extended with schemaMatchers
     ├── api/            # API tests, Playwright project `api` (no browser)
-    └── client/         # UI tests, projects chromium / firefox / webkit
+    └── ui/             # UI tests, projects chromium / firefox / webkit
 files/uploads/          # input files for upload tests
 files/downloads/        # download output (git-ignored)
 storageStates/          # saved auth sessions, created at runtime (git-ignored)
@@ -60,7 +59,7 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 ### Tests
 
 - Import `test` and `expect` from `src/tests/baseTest.ts`, **not** from `@playwright/test`.
-- File names: `<feature>.spec.ts` (kebab-case), placed in the folder matching the app area.
+- File names: `<feature>.spec.ts` (kebab-case), placed in `src/tests/ui/` (UI) or `src/tests/api/` (API).
 - Use page-object and service fixtures (`async ({ mainPage, customerService }) => ...`) instead of `new XPage(page)` or `new XService(api)` inside tests.
 - Use web-first assertions (`await expect(locator).toBeVisible()`); no `waitForTimeout` or hard sleeps.
 - Tests must be independent and runnable in parallel (`fullyParallel: true`). Create the data a test needs; don't rely on another test's state.
@@ -92,7 +91,7 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 
 ### Page objects
 
-- One class per page/feature: `src/pages/<area>/<feature>Page.ts`, class name `<Feature>Page`.
+- One class per page/feature: `src/pages/<feature>Page.ts`, class name `<Feature>Page`.
 - Standalone classes (no base class): take `page: Page` in the constructor and declare `page` and locators as `readonly` fields initialised there.
 - Follow the structure template strictly — don't add folders, base classes, or helpers that aren't in it.
 - Prefer user-facing locators: `getByRole`, `getByLabel`, `getByText`, `getByTestId`. Avoid CSS/XPath unless there is no alternative.
@@ -152,7 +151,7 @@ Qase mode in `ui`: `QASE_MODE=testops` only when repo variable `QASE_MODE` is `t
 
 - Reporter `playwright-qase-reporter` is configured in `playwright.config.ts`, alongside `list` and `html`. `QASE_MODE=report` writes a local JSON report to `build/qase-report/`.
 - The reporter adds the Playwright project name as the result parameter `Project` (`chromium`, `firefox`, `webkit` or `api`).
-- Qase project `PB` suites: `E2E` (UI tests, `src/tests/client/`) and `API` (`src/tests/api/`), each with feature suites inside (e.g. `E2E / Registration`, `API / Registration`). The case field **Layer** matches: `e2e` or `api`, also set in `qase.fields({ layer })`.
+- Qase project `PB` suites: `E2E` (UI tests, `src/tests/ui/`) and `API` (`src/tests/api/`), each with feature suites inside (e.g. `E2E / Registration`, `API / Registration`). The case field **Layer** matches: `e2e` or `api`, also set in `qase.fields({ layer })`.
 - MCP servers are defined in `.mcp.json`:
   - `qase` (`@qase/mcp-server`, reuses `QASE_TESTOPS_API_TOKEN` from `.env`) with the `qase-skill` skill (`.claude/skills/qase-skill/SKILL.md`) — manage cases, runs and defects.
   - `playwright` (`@playwright/mcp`, headed Chrome, output in `.playwright-mcp/`) with the `playwright-skill` skill (`.claude/skills/playwright-skill/SKILL.md`) — explore pages, build locators, debug. Finished work is always plain specs verified with `npx playwright test`.
