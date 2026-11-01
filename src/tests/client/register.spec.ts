@@ -120,7 +120,12 @@ test.describe('Registration', () => {
     });
   });
 
-  test('Registered user can log in', async ({ page, mainPage, registerPage }) => {
+  test('Registered user can log in', async ({
+    page,
+    mainPage,
+    registerPage,
+    accountsOverviewPage,
+  }) => {
     qase.id(5);
     qase.fields({ severity: 'critical', priority: 'high', layer: 'e2e' });
     const customer = generateCustomer();
@@ -143,14 +148,19 @@ test.describe('Registration', () => {
     await test.step('Log in with the new username and password', async () => {
       await mainPage.login(customer);
       await expect(page).toHaveTitle(PAGE_TITLES.accountsOverview);
-      await expect(mainPage.accountsOverviewHeading).toBeVisible();
+      await expect(accountsOverviewPage.accountsOverviewHeading).toBeVisible();
       await expect(mainPage.customerWelcome).toHaveText(
         `Welcome ${customer.firstName} ${customer.lastName}`,
       );
     });
   });
 
-  test('New customer gets a default account', async ({ page, mainPage, registerPage }) => {
+  test('New customer gets a default account', async ({
+    page,
+    mainPage,
+    registerPage,
+    accountsOverviewPage,
+  }) => {
     qase.id(6);
     qase.fields({ severity: 'normal', priority: 'medium', layer: 'e2e' });
     const customer = generateCustomer();
@@ -166,17 +176,17 @@ test.describe('Registration', () => {
     await test.step('Open "Accounts Overview"', async () => {
       await mainPage.openAccountsOverview();
       await expect(page).toHaveTitle(PAGE_TITLES.accountsOverview);
-      await expect(mainPage.accountRows).toHaveCount(1);
+      await expect(accountsOverviewPage.accountRows).toHaveCount(1);
     });
 
     await test.step('Check the account balance', async () => {
       // Cells: account number, Balance, Available Amount
-      await expect(mainPage.accountRows.getByRole('cell')).toHaveText([
+      await expect(accountsOverviewPage.accountRows.getByRole('cell')).toHaveText([
         /^\d+$/,
         NEW_CUSTOMER_BALANCE,
         NEW_CUSTOMER_BALANCE,
       ]);
-      await expect(mainPage.accountsTotalRow.getByRole('cell').nth(1)).toHaveText(
+      await expect(accountsOverviewPage.accountsTotalRow.getByRole('cell').nth(1)).toHaveText(
         NEW_CUSTOMER_BALANCE,
       );
     });

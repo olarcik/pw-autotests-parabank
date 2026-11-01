@@ -19,9 +19,6 @@ export class MainPage {
   readonly accountServicesLinks: Locator;
   readonly accountsOverviewLink: Locator;
   readonly logOutLink: Locator;
-  readonly accountsOverviewHeading: Locator;
-  readonly accountRows: Locator;
-  readonly accountsTotalRow: Locator;
 
   constructor(page: Page) {
     this.page = page;
@@ -36,7 +33,8 @@ export class MainPage {
     this.loginUsernameInput = page.locator('#loginPanel input[name="username"]');
     this.loginPasswordInput = page.locator('#loginPanel input[name="password"]');
     this.loginButton = page.getByRole('button', { name: 'Log In', exact: true });
-    // Left panel of a logged-in customer: "Welcome <First> <Last>" and the Account Services menu
+    // Left panel of a logged-in customer: "Welcome <First> <Last>" and the Account Services menu.
+    // It is on every page after login; tests reach it through MainPage (CLAUDE.md, Page objects)
     this.customerWelcome = page.locator('#leftPanel').getByText(/^Welcome /);
     this.accountServicesHeading = page.getByRole('heading', {
       name: 'Account Services',
@@ -45,14 +43,6 @@ export class MainPage {
     this.accountServicesLinks = page.locator('#leftPanel').getByRole('link');
     this.accountsOverviewLink = page.getByRole('link', { name: 'Accounts Overview', exact: true });
     this.logOutLink = page.getByRole('link', { name: 'Log Out', exact: true });
-    // Accounts Overview table has no accessible name; account rows link to the account activity
-    this.accountsOverviewHeading = page.getByRole('heading', {
-      name: 'Accounts Overview',
-      exact: true,
-    });
-    const accountTable = page.locator('#accountTable');
-    this.accountRows = accountTable.getByRole('row').filter({ has: page.getByRole('link') });
-    this.accountsTotalRow = accountTable.getByRole('row').filter({ hasText: 'Total' });
   }
 
   async open() {

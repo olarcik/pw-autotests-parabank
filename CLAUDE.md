@@ -32,20 +32,22 @@ src/
 ├── common/
 │   ├── api/
 │   │   ├── requestHandler.ts  # RequestHandler: new builder per request, report steps, exchange log
-│   │   ├── exchangeLog.ts     # Exchange type, masking of secrets, attachment files of failed tests
+│   │   ├── exchangeLog.ts     # Exchange type, masking of secrets, attachExchanges: attachment files of failed tests
 │   │   └── endpoints.ts       # all request paths (REST paths and the register.htm URL)
 │   ├── data/
 │   │   ├── setup.ts    # ENV, TENANT, BASE_URL, URLS (client, admin, api) — read from process.env
 │   │   └── test.ts     # shared static test values
 │   ├── interfaces/     # types shared by several domains (no barrel files)
 │   ├── utils/          # shared generators and helpers
-│   ├── integrations/   # email/OTP and other external services
+│   │   └── matchers.ts # schemaMatchers: custom expect matcher toMatchSchema
+│   ├── integrations/
+│   │   └── external-service/  # external services (placeholder, kept with .gitkeep)
 │   └── domains/<domain>/   # only data about objects: interfaces.ts, data.ts, schemas.ts
 ├── services/           # Service Objects, one file per ParaBank resource: <resource>Service.ts
 ├── pages/
-│   └── client/         # <feature>Page.ts
+│   └── client/         # <feature>Page.ts: mainPage (header, login, left panel), registerPage, accountsOverviewPage
 └── tests/
-    ├── baseTest.ts     # extended `test`: page-object and service fixtures (generated from pagesMap and servicesMap), `api` and `registeredCustomer` fixtures; `expect` with toMatchSchema
+    ├── baseTest.ts     # extended `test`: page-object and service fixtures (generated from pagesMap and servicesMap), `api` and `registeredCustomer` fixtures; `expect` extended with schemaMatchers
     ├── api/            # API tests, Playwright project `api` (no browser)
     └── client/         # UI tests, projects chromium / firefox / webkit
 files/uploads/          # input files for upload tests
@@ -95,6 +97,7 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 - Follow the structure template strictly — don't add folders, base classes, or helpers that aren't in it.
 - Prefer user-facing locators: `getByRole`, `getByLabel`, `getByText`, `getByTestId`. Avoid CSS/XPath unless there is no alternative.
 - Page objects expose actions (`login(customer)`, `openAccount(type)`). Assertions belong in tests; the only exception is a composite `expect…` method that checks the state of one page (e.g. `RegisterPage.expectFormValues(customer)`). Single checks stay in tests.
+- The left panel of a logged-in customer (welcome text, Account Services menu, Log Out) is on every page after login. It stays in `MainPage`; don't create a separate class or repeat it in other page objects.
 - Register every new page object by adding it to `pagesMap` in `baseTest.ts` — fixtures and their types are generated from it.
 
 ### Data & configuration

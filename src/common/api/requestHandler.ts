@@ -1,5 +1,5 @@
 import { APIRequestContext, test } from '@playwright/test';
-import { Exchange, Headers, Method, Params, mask } from './exchangeLog';
+import { Exchange, Method, Params, RequestHeaders, mask } from './exchangeLog';
 
 // Longest response body kept in the log
 const MAX_BODY_LENGTH = 5000;
@@ -38,7 +38,7 @@ class RequestBuilder {
   private readonly url: string;
   // Path shown in the step title: relative to the REST base for path(), the URL pathname for url()
   private readonly path: string;
-  private requestHeaders: Headers;
+  private requestHeaders: RequestHeaders;
   private requestParams: Params = {};
   private formData?: Params;
   private jsonBody?: unknown;
@@ -48,7 +48,7 @@ class RequestBuilder {
     log: Exchange[],
     url: string,
     path: string,
-    headers: Headers,
+    headers: RequestHeaders,
   ) {
     this.request = request;
     this.log = log;
@@ -62,7 +62,7 @@ class RequestBuilder {
     return this;
   }
 
-  headers(headers: Headers) {
+  headers(headers: RequestHeaders) {
     this.requestHeaders = { ...this.requestHeaders, ...headers };
     return this;
   }
