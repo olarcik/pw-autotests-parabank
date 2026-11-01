@@ -22,7 +22,7 @@ On first use in a session call `qase_project_context` (`code`) to learn suites, 
 ## Automate an existing case ("automate case 42")
 
 1. `qase_get` with `entity: "case"`, `code`, `id: 42` — read title, preconditions, steps, expected results, suite.
-2. Write the spec following `CLAUDE.md` conventions: `src/tests/client/<feature>.spec.ts`, import `test, expect, qase` from `../baseTest`, page-object fixtures from `pagesMap`, web-first assertions.
+2. Write the spec following `CLAUDE.md` conventions: `src/tests/ui/<feature>.spec.ts`, import `test, expect, qase` from `../baseTest`, page-object fixtures from `pagesMap`, web-first assertions.
 3. First line of the test body: `qase.id(42);`. Map each Qase step to a `test.step('<step action>', ...)` and assert its expected result inside it.
 4. Run lint + typecheck, then the spec on chromium.
 5. Offer to set the case's `automation` to automated with `qase_case_upsert` (`id: 42`) — confirm first.

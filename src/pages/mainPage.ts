@@ -1,6 +1,6 @@
 import { Locator, Page } from '@playwright/test';
-import { URLS } from '../../common/data/setup';
-import { Customer } from '../../common/domains/customer/interfaces';
+import { URLS } from '../common/data/setup';
+import { Customer } from '../common/domains/customer/interfaces';
 
 export class MainPage {
   readonly page: Page;
@@ -46,7 +46,7 @@ export class MainPage {
   }
 
   async open() {
-    await this.page.goto(URLS.client);
+    await this.page.goto(URLS.app);
   }
 
   async openRegisterPage() {

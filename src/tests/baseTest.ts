@@ -8,9 +8,9 @@ import { generateCustomer } from '../common/domains/customer/data';
 import { Customer, CustomerResponse } from '../common/domains/customer/interfaces';
 import { CustomerResponseSchema } from '../common/domains/customer/schemas';
 import { schemaMatchers } from '../common/utils/matchers';
-import { AccountsOverviewPage } from '../pages/client/accountsOverviewPage';
-import { MainPage } from '../pages/client/mainPage';
-import { RegisterPage } from '../pages/client/registerPage';
+import { AccountsOverviewPage } from '../pages/accountsOverviewPage';
+import { MainPage } from '../pages/mainPage';
+import { RegisterPage } from '../pages/registerPage';
 import { AccountService } from '../services/accountService';
 import { CustomerService } from '../services/customerService';
 

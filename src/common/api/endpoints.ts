@@ -11,5 +11,5 @@ export const endpoints = {
   account: (accountId: number) => `/accounts/${accountId}`,
   accountTransactions: (accountId: number) => `/accounts/${accountId}/transactions`,
   transaction: (transactionId: number) => `/transactions/${transactionId}`,
-  register: `${URLS.client}/register.htm`,
+  register: `${URLS.app}/register.htm`,
 };
