@@ -1,5 +1,6 @@
 // Log entries of RequestHandler: masking of secrets and report files for a failed test.
 // Imports nothing from requestHandler.ts.
+import { TestInfo } from '@playwright/test';
 
 export type Params = Record<string, string | number | boolean>;
 export type Headers = Record<string, string>;
@@ -50,7 +51,7 @@ const toFileName = (path: string) =>
 // "<NN> <METHOD> <path> response.<json|html|txt>" (the latter only if a response came); the request
 // file also holds the response status and content type. NN is the 1-based position in the log, so
 // repeated requests get their own files
-export const exchangeAttachments = (
+const exchangeAttachments = (
   { title, status, contentType, responseBody, ...request }: Exchange,
   position: number,
 ) => {
@@ -76,4 +77,15 @@ export const exchangeAttachments = (
     });
   }
   return attachments;
+};
+
+// Attaches the request/response files of the log, only for a failed attempt; each retry has its own
+// testInfo
+export const attachExchanges = async (testInfo: TestInfo, log: Exchange[]) => {
+  if (testInfo.status === testInfo.expectedStatus) return;
+
+  const attachments = log.flatMap((exchange, index) => exchangeAttachments(exchange, index + 1));
+  for (const { name, body, contentType } of attachments) {
+    await testInfo.attach(name, { body, contentType });
+  }
 };

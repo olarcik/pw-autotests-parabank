@@ -32,7 +32,7 @@ src/
 ├── common/
 │   ├── api/
 │   │   ├── requestHandler.ts  # RequestHandler: new builder per request, report steps, exchange log
-│   │   ├── exchangeLog.ts     # Exchange type, masking of secrets, attachment files of failed tests
+│   │   ├── exchangeLog.ts     # Exchange type, masking of secrets, attachExchanges: attachment files of failed tests
 │   │   └── endpoints.ts       # all request paths (REST paths and the register.htm URL)
 │   ├── data/
 │   │   ├── setup.ts    # ENV, TENANT, BASE_URL, URLS (client, admin, api) — read from process.env

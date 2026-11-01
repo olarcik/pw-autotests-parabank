@@ -1,6 +1,6 @@
 import { test, expect as baseExpect, Page } from '@playwright/test';
 import { z } from 'zod';
-import { exchangeAttachments } from '../common/api/exchangeLog';
+import { attachExchanges } from '../common/api/exchangeLog';
 import { RequestHandler } from '../common/api/requestHandler';
 import { PAGE_TITLES } from '../common/data/test';
 import { URLS } from '../common/data/setup';
@@ -70,16 +70,7 @@ export const baseTest = pageTest.extend<ApiFixtures>({
   api: async ({ request }, use, testInfo) => {
     const api = new RequestHandler(request, URLS.api);
     await use(api);
-
-    // Request/response files only for a failed attempt; each retry has its own testInfo
-    if (testInfo.status !== testInfo.expectedStatus) {
-      const attachments = api.log.flatMap((exchange, index) =>
-        exchangeAttachments(exchange, index + 1),
-      );
-      for (const { name, body, contentType } of attachments) {
-        await testInfo.attach(name, { body, contentType });
-      }
-    }
+    await attachExchanges(testInfo, api.log);
   },
 
   // Object.entries loses the class types; ServiceFixtures restores them for tests
