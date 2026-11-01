@@ -39,13 +39,14 @@ src/
 │   │   └── test.ts     # shared static test values
 │   ├── interfaces/     # types shared by several domains (no barrel files)
 │   ├── utils/          # shared generators and helpers
+│   │   └── matchers.ts # schemaMatchers: custom expect matcher toMatchSchema
 │   ├── integrations/   # email/OTP and other external services
 │   └── domains/<domain>/   # only data about objects: interfaces.ts, data.ts, schemas.ts
 ├── services/           # Service Objects, one file per ParaBank resource: <resource>Service.ts
 ├── pages/
 │   └── client/         # <feature>Page.ts
 └── tests/
-    ├── baseTest.ts     # extended `test`: page-object and service fixtures (generated from pagesMap and servicesMap), `api` and `registeredCustomer` fixtures; `expect` with toMatchSchema
+    ├── baseTest.ts     # extended `test`: page-object and service fixtures (generated from pagesMap and servicesMap), `api` and `registeredCustomer` fixtures; `expect` extended with schemaMatchers
     ├── api/            # API tests, Playwright project `api` (no browser)
     └── client/         # UI tests, projects chromium / firefox / webkit
 files/uploads/          # input files for upload tests

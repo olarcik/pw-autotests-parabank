@@ -7,6 +7,7 @@ import { URLS } from '../common/data/setup';
 import { generateCustomer } from '../common/domains/customer/data';
 import { Customer, CustomerResponse } from '../common/domains/customer/interfaces';
 import { CustomerResponseSchema } from '../common/domains/customer/schemas';
+import { schemaMatchers } from '../common/utils/matchers';
 import { MainPage } from '../pages/client/mainPage';
 import { RegisterPage } from '../pages/client/registerPage';
 import { AccountService } from '../services/accountService';
@@ -124,24 +125,6 @@ export const baseTest = pageTest.extend<ApiFixtures>({
 export { baseTest as test };
 
 // Custom matchers; their types are inferred by expect.extend, so specs get them from this `expect`
-export const expect = baseExpect.extend({
-  // Validates a value (e.g. a parsed JSON body) against a Zod schema and lists every issue on failure
-  toMatchSchema(received: unknown, schema: z.ZodType) {
-    const result = schema.safeParse(received);
-    const hint = this.utils.matcherHint('toMatchSchema', undefined, undefined, {
-      isNot: this.isNot,
-    });
-
-    return {
-      name: 'toMatchSchema',
-      pass: result.success,
-      message: () =>
-        result.success
-          ? `${hint}\n\nExpected value not to match the schema, but it does`
-          : `${hint}\n\nSchema issues:\n${z.prettifyError(result.error)}\n\n` +
-            `Received: ${this.utils.printReceived(received)}`,
-    };
-  },
-});
+export const expect = baseExpect.extend(schemaMatchers);
 
 export { qase } from 'playwright-qase-reporter';
