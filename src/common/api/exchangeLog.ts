@@ -3,7 +3,7 @@
 import { TestInfo } from '@playwright/test';
 
 export type Params = Record<string, string | number | boolean>;
-export type Headers = Record<string, string>;
+export type RequestHeaders = Record<string, string>;
 export type Method = 'GET' | 'POST';
 
 // One request and its response as kept in the log; secrets are already masked
@@ -12,7 +12,7 @@ export interface Exchange {
   // "METHOD /path", also the step title
   title: string;
   url: string;
-  headers: Headers;
+  headers: RequestHeaders;
   params: Params;
   form?: Params;
   body?: unknown;
