@@ -8,6 +8,7 @@ import { generateCustomer } from '../common/domains/customer/data';
 import { Customer, CustomerResponse } from '../common/domains/customer/interfaces';
 import { CustomerResponseSchema } from '../common/domains/customer/schemas';
 import { schemaMatchers } from '../common/utils/matchers';
+import { AccountsOverviewPage } from '../pages/client/accountsOverviewPage';
 import { MainPage } from '../pages/client/mainPage';
 import { RegisterPage } from '../pages/client/registerPage';
 import { AccountService } from '../services/accountService';
@@ -16,6 +17,7 @@ import { CustomerService } from '../services/customerService';
 const pagesMap = {
   mainPage: MainPage,
   registerPage: RegisterPage,
+  accountsOverviewPage: AccountsOverviewPage,
   // add more page mappings here as needed
 };
 
