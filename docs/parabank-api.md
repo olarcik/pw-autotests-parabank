@@ -149,7 +149,7 @@ Success and every validation error answer `200 text/html` without a redirect. Te
 | No session (POST without the GET) | `500`, `<title>ParaBank \| Error</title>`, "Error! An internal error has occurred…"; the server logs `IllegalStateException: Expected session attribute 'customerForm'`; no customer is created |
 
 Messages for empty required fields are the same as in the UI (see `REGISTER_ERRORS` in
-`src/common/data/test.ts`).
+`src/common/data/testData.ts`).
 
 ## 6. Data models
 

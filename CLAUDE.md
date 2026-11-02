@@ -36,7 +36,7 @@ src/
 │   │   └── endpoints.ts       # all request paths (REST paths and the register.htm URL)
 │   ├── data/
 │   │   ├── setup.ts    # ENV, TENANT, BASE_URL, URLS (app, api) — read from process.env
-│   │   └── test.ts     # shared static test values
+│   │   └── testData.ts # shared static test values
 │   ├── interfaces/     # types shared by several domains (no barrel files)
 │   ├── utils/          # shared generators and helpers
 │   │   └── matchers.ts # schemaMatchers: custom expect matcher toMatchSchema
@@ -58,7 +58,7 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 
 ### Tests
 
-- Import `test` and `expect` from `src/tests/baseTest.ts`, **not** from `@playwright/test`.
+- Import `test` and `expect` from `src/tests/baseTest.ts` (`@src/tests/baseTest`), **not** from `@playwright/test`.
 - File names: `<feature>.spec.ts` (kebab-case), placed in `src/tests/ui/` (UI) or `src/tests/api/` (API).
 - Use page-object and service fixtures (`async ({ mainPage, customerService }) => ...`) instead of `new XPage(page)` or `new XService(api)` inside tests.
 - Use web-first assertions (`await expect(locator).toBeVisible()`); no `waitForTimeout` or hard sleeps.
@@ -105,7 +105,7 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 - When adding a variable, update `.env.example`, `setup.ts`, the `playwright-tests` service `environment:` in `docker-compose.yml`, and the `env:` block of the `ui` job in `.github/workflows/playwright-tests.yml`.
 - Never commit credentials or `.env`. The only CI secret is `QASE_TESTOPS_API_TOKEN` (GitHub Actions secrets).
 - Generate unique data (usernames, emails) with generators in the domain's `data.ts` (`generateCustomer` in `src/common/domains/customer/data.ts`), not hard-coded values.
-- Shared static values (page titles, validation messages, expected amounts, fixed inputs) live in `src/common/data/test.ts`, grouped and commented; specs keep no module-level constants.
+- Shared static values (page titles, validation messages, expected amounts, fixed inputs) live in `src/common/data/testData.ts`, grouped and commented; specs keep no module-level constants.
 
 ### Environment variables (`.env.example`)
 
@@ -125,7 +125,8 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 
 - Formatting is owned by Prettier (`.prettierrc`: single quotes, semicolons, trailing commas, width 100, 2 spaces, LF; exclusions in `.prettierignore`). Run `npm run format` instead of formatting by hand; ESLint style rules that conflict with it are disabled by `eslint-config-prettier`.
 - TypeScript strict mode; no `any` unless justified.
-- Domain types live in `src/common/domains/<domain>/interfaces.ts` and are imported directly from there (relative path). Zod schemas of API responses live in `schemas.ts` next to it; their types are declared in `interfaces.ts` as `z.infer<typeof …Schema>`, not written by hand. `src/common/interfaces/` is only for types shared by several domains. Don't create re-export (barrel) files.
+- Domain types live in `src/common/domains/<domain>/interfaces.ts` and are imported directly from there. Zod schemas of API responses live in `schemas.ts` next to it; their types are declared in `interfaces.ts` as `z.infer<typeof …Schema>`, not written by hand. `src/common/interfaces/` is only for types shared by several domains. Don't create re-export (barrel) files.
+- Imports from another folder use the `@src/*` alias from `tsconfig.json` (`@src/common/data/setup`, `@src/pages/mainPage`); imports of a file in the same folder stay relative (`./schemas`). No `../` paths.
 - Naming: REST response bodies are `<Name>Response`, their schemas `<Name>ResponseSchema`. The type `Customer` in the customer domain is the test data of a customer (with credentials), not a REST response.
 - Keep files LF line endings (enforced by `.gitattributes` and Prettier).
 

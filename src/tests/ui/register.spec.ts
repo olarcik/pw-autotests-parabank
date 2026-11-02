@@ -1,12 +1,12 @@
-import { test, expect, qase } from '../baseTest';
-import { generateCustomer } from '../../common/domains/customer/data';
+import { test, expect, qase } from '@src/tests/baseTest';
+import { generateCustomer } from '@src/common/domains/customer/data';
 import {
   ACCOUNT_SERVICES,
   CASE_MISMATCHED_PASSWORDS,
   NEW_CUSTOMER_BALANCE,
   PAGE_TITLES,
   REGISTER_ERRORS,
-} from '../../common/data/test';
+} from '@src/common/data/testData';
 
 test.describe('Registration', () => {
   test.beforeEach(async ({ mainPage }) => {
