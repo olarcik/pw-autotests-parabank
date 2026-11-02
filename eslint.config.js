@@ -26,7 +26,7 @@ module.exports = defineConfig(
     },
   },
   {
-    files: ['src/tests/**/*.ts'],
+    files: ['src/tests/**/*.ts', 'src/fixtures/**/*.ts'],
     extends: [playwright.configs['flat/recommended']],
   },
   // Last, so it turns off every rule above that conflicts with Prettier formatting.
