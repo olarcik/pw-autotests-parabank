@@ -219,30 +219,35 @@ test.describe('Registration', () => {
     });
   });
 
-  test('Single missing required field shows only its error', async ({
-    page,
-    mainPage,
-    registerPage,
-  }) => {
-    qase.id(8);
-    qase.fields({ severity: 'major', priority: 'high', layer: 'e2e' });
-    // 10 full Home -> Register -> submit cycles in one test don't fit the default timeout
-    test.slow();
+  // One test per required field (names are the keys of RegisterPage.requiredFields)
+  for (const [name, error] of Object.entries(REGISTER_ERRORS.required)) {
+    test(`Single missing required field shows only its error: ${name}`, async ({
+      page,
+      mainPage,
+      registerPage,
+    }) => {
+      qase.id(8);
+      qase.fields({ severity: 'major', priority: 'high', layer: 'e2e' });
+      // The 10 results of case 8 differ in Qase by this parameter
+      qase.parameters({ Field: name });
 
-    for (const { name, input } of registerPage.requiredFields) {
-      await test.step(`Leave ${name} empty and submit`, async () => {
-        await mainPage.open();
+      await test.step('Open the Register page and fill all fields with valid data', async () => {
         await mainPage.openRegisterPage();
         await expect(registerPage.heading).toBeVisible();
         await registerPage.fillForm(generateCustomer());
-        await input.clear();
+      });
+
+      await test.step(`Leave ${name} empty and submit`, async () => {
+        // REGISTER_ERRORS.required is keyed by requiredFields names, so the field always exists
+        const field = registerPage.requiredFields.find((f) => f.name === name)!;
+        await field.input.clear();
         await registerPage.registerButton.click();
         await expect(page).toHaveTitle(PAGE_TITLES.register);
         await expect(mainPage.loginHeading).toBeVisible();
-        await expect(registerPage.errorMessages).toHaveText([REGISTER_ERRORS.required[name]]);
+        await expect(registerPage.errorMessages).toHaveText([error]);
       });
-    }
-  });
+    });
+  }
 
   test('Entered values are kept after failed submit', async ({ page, mainPage, registerPage }) => {
     qase.id(9);
