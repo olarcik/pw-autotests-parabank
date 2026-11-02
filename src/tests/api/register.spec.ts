@@ -1,10 +1,10 @@
-import { test, expect, qase } from '../baseTest';
-import { generateCustomer } from '../../common/domains/customer/data';
-import { AccountResponse } from '../../common/domains/account/interfaces';
-import { AccountResponseSchema } from '../../common/domains/account/schemas';
-import { CustomerResponse } from '../../common/domains/customer/interfaces';
-import { CustomerResponseSchema } from '../../common/domains/customer/schemas';
-import { NEW_CUSTOMER_ACCOUNT, PAGE_TITLES } from '../../common/data/test';
+import { test, expect, qase } from '@src/tests/baseTest';
+import { generateCustomer } from '@src/common/domains/customer/data';
+import { AccountResponse } from '@src/common/domains/account/interfaces';
+import { AccountResponseSchema } from '@src/common/domains/account/schemas';
+import { CustomerResponse } from '@src/common/domains/customer/interfaces';
+import { CustomerResponseSchema } from '@src/common/domains/customer/schemas';
+import { NEW_CUSTOMER_ACCOUNT, PAGE_TITLES } from '@src/common/data/testData';
 
 test.describe('Registration', () => {
   test('Successful registration via API', async ({ customerService, accountService }) => {

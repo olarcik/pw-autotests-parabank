@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-End-to-end UI/API test automation for **ParaBank** using Playwright + TypeScript. Tests run against a local ParaBank in Docker (image `parasoft/parabank`, pinned by digest in `docker-compose.yml`), not the public demo site.
+End-to-end UI/API test automation for **ParaBank** using Playwright + TypeScript. By default tests run against a local ParaBank in Docker (image `parasoft/parabank`, pinned by digest in `docker-compose.yml`). The public demo is available with `ENV=demo`, but it is a shared third-party service: don’t run the full suite against it.
 The framework is built incrementally: folders exist up front (kept with `.gitkeep`), and code is added as tests are written.
 
 ## Commands
@@ -35,8 +35,8 @@ src/
 │   │   ├── exchangeLog.ts     # Exchange type, masking of secrets, attachExchanges: attachment files of failed tests
 │   │   └── endpoints.ts       # all request paths (REST paths and the register.htm URL)
 │   ├── data/
-│   │   ├── setup.ts    # ENV, TENANT, BASE_URL, URLS (app, api) — read from process.env
-│   │   └── test.ts     # shared static test values
+│   │   ├── setup.ts    # loads .env and env/<ENV>.env; ENV, BASE_URL, URLS (app, api)
+│   │   └── testData.ts # shared static test values
 │   ├── interfaces/     # types shared by several domains (no barrel files)
 │   ├── utils/          # shared generators and helpers
 │   │   └── matchers.ts # schemaMatchers: custom expect matcher toMatchSchema
@@ -49,23 +49,26 @@ src/
     ├── baseTest.ts     # extended `test`: page-object and service fixtures (generated from pagesMap and servicesMap), `api` and `registeredCustomer` fixtures; `expect` extended with schemaMatchers
     ├── api/            # API tests, Playwright project `api` (no browser)
     └── ui/             # UI tests, projects chromium / firefox / webkit
+env/                    # <ENV>.env per environment (local, demo): BASE_URL, no secrets, committed
 files/uploads/          # input files for upload tests
 files/downloads/        # download output (git-ignored)
 storageStates/          # saved auth sessions, created at runtime (git-ignored)
+LICENSE                 # MIT
 ```
 
 ## Conventions
 
 ### Tests
 
-- Import `test` and `expect` from `src/tests/baseTest.ts`, **not** from `@playwright/test`.
+- Import `test` and `expect` from `src/tests/baseTest.ts` (`@src/tests/baseTest`), **not** from `@playwright/test`.
 - File names: `<feature>.spec.ts` (kebab-case), placed in `src/tests/ui/` (UI) or `src/tests/api/` (API).
 - Use page-object and service fixtures (`async ({ mainPage, customerService }) => ...`) instead of `new XPage(page)` or `new XService(api)` inside tests.
 - Use web-first assertions (`await expect(locator).toBeVisible()`); no `waitForTimeout` or hard sleeps.
 - Tests must be independent and runnable in parallel (`fullyParallel: true`). Create the data a test needs; don't rely on another test's state.
+- Parameterized tests (one scenario on several data sets): loop over the data and register a separate test per row with a unique title (as in Playwright test-parameterize), not a loop inside one test; hooks stay outside the loop. Tests of one Qase case get the same `qase.id()` and different `qase.parameters()`. Example: the required-field test in `src/tests/ui/register.spec.ts`.
 - Use `test.step()` for multi-step flows to keep reports readable (steps are also sent to Qase).
 - Tests navigate as a user: start on the Home page (`test.beforeEach` with `mainPage.open()`) and reach the target page through visible steps (e.g. `mainPage.openRegisterPage()`) inside the test. A direct `goto` to an inner page is allowed only when the test checks exactly that (e.g. a direct link).
-- Link each test to its Qase case with `qase.id(<id>)` as the first line of the test body (`qase` is exported from `baseTest.ts`). The ID in `qase.id()` always equals the case ID in Qase. Don't use the `qase(id, 'title')` title wrapper — it fails the `playwright/valid-title` lint rule. Optional metadata: `qase.fields({ severity, priority, layer })`, `qase.suite()`, `qase.attach()`, `qase.ignore()`.
+- Link each test to its Qase case with `qase.id(<id>)` as the first line of the test body (`qase` is exported from `baseTest.ts`). The ID in `qase.id()` always equals the case ID in Qase. Don't use the `qase(id, 'title')` title wrapper — it fails the `playwright/valid-title` lint rule. Optional metadata: `qase.fields({ severity, priority, layer })`, `qase.parameters()` (e.g. the data row of a parameterized test), `qase.suite()`, `qase.attach()`, `qase.ignore()`.
 
 ### API tests
 
@@ -101,18 +104,23 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 
 ### Data & configuration
 
-- Environment values come from `.env` (loaded by `playwright.config.ts` via dotenv). Access them through `src/common/data/setup.ts`, never `process.env` directly in tests or pages.
-- When adding a variable, update `.env.example`, `setup.ts`, the `playwright-tests` service `environment:` in `docker-compose.yml`, and the `env:` block of the `ui` job in `.github/workflows/playwright-tests.yml`.
+- Environment values are loaded by `src/common/data/setup.ts` itself (dotenv, never overwriting a set value), so the precedence is: shell / CI / Compose > `.env` > `env/<ENV>.env`. `playwright.config.ts` imports `setup.ts` first. Access values through `setup.ts`, never `process.env` directly in tests or pages.
+- `setup.ts` throws if `BASE_URL` is still unset; a missing `env/<ENV>.env` alone is not an error (the Docker image has no `env/`, Compose sets `BASE_URL`).
+- When adding a variable: a per-environment value (URL, etc.) goes into every `env/<ENV>.env`; a personal or secret value goes into `.env.example`. Then update `setup.ts`, and if the tests in Docker need it, the `playwright-tests` service `environment:` in `docker-compose.yml` and the `env:` block of the `ui` job in `.github/workflows/playwright-tests.yml`.
+- When adding an environment, add `env/<name>.env` with at least `BASE_URL`.
 - Never commit credentials or `.env`. The only CI secret is `QASE_TESTOPS_API_TOKEN` (GitHub Actions secrets).
 - Generate unique data (usernames, emails) with generators in the domain's `data.ts` (`generateCustomer` in `src/common/domains/customer/data.ts`), not hard-coded values.
-- Shared static values (page titles, validation messages, expected amounts, fixed inputs) live in `src/common/data/test.ts`, grouped and commented; specs keep no module-level constants.
+- Shared static values (page titles, validation messages, expected amounts, fixed inputs) live in `src/common/data/testData.ts`, grouped and commented; specs keep no module-level constants.
 
-### Environment variables (`.env.example`)
+### Environment variables
 
-- `ENV`, `TENANT` — environment name and tenant (`setup.ts`; defaults `dev`, `parabank`).
-- `BASE_URL` — app URL for tests on the host (default `http://localhost:8080/parabank`).
-- `PARABANK_PORT` — host port of the ParaBank container (default `8080`; Compose only). Keep `BASE_URL` in sync.
-- `QASE_MODE` (`off` | `testops` | `report`), `QASE_TESTOPS_PROJECT`, `QASE_TESTOPS_API_TOKEN`, `QASE_TESTOPS_RUN_TITLE` — Qase reporter only, read in `playwright.config.ts` or by the reporter, not in `setup.ts`.
+The ones in `.env.example` are `ENV` and the three `QASE_*` below; the others are optional and set only when needed.
+
+- `ENV` — environment name, selects `env/<ENV>.env`: `local` (default, Docker app) or `demo` (public site). Fixed to `local` in `docker-compose.yml`.
+- `BASE_URL` — app URL; comes from `env/<ENV>.env`. Not in `.env.example`: set it in `.env` or the shell only to override (e.g. another port). In Compose it is `http://parabank:8080/parabank`.
+- `PARABANK_PORT` — optional, not in `.env.example`: host port of the ParaBank container (default `8080`; Compose only). If you change it, set `BASE_URL` in `.env` to match.
+- `QASE_MODE` (`off` | `testops` | `report`), `QASE_TESTOPS_PROJECT`, `QASE_TESTOPS_API_TOKEN` — Qase reporter only, read in `playwright.config.ts` or by the reporter, not in `setup.ts`.
+- `QASE_TESTOPS_RUN_TITLE` — optional, not in `.env.example`: run name in Qase (a default name is used when empty); in CI it is set by the workflow.
 - `CI` — set by the CI runner (retries, single worker, `forbidOnly`).
 
 ### Formatting
@@ -125,7 +133,9 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 
 - Formatting is owned by Prettier (`.prettierrc`: single quotes, semicolons, trailing commas, width 100, 2 spaces, LF; exclusions in `.prettierignore`). Run `npm run format` instead of formatting by hand; ESLint style rules that conflict with it are disabled by `eslint-config-prettier`.
 - TypeScript strict mode; no `any` unless justified.
-- Domain types live in `src/common/domains/<domain>/interfaces.ts` and are imported directly from there (relative path). Zod schemas of API responses live in `schemas.ts` next to it; their types are declared in `interfaces.ts` as `z.infer<typeof …Schema>`, not written by hand. `src/common/interfaces/` is only for types shared by several domains. Don't create re-export (barrel) files.
+- ESLint rule `@typescript-eslint/no-floating-promises` is on: every async call (service and page methods, `expect`, `test.step`) is awaited.
+- Domain types live in `src/common/domains/<domain>/interfaces.ts` and are imported directly from there. Zod schemas of API responses live in `schemas.ts` next to it; their types are declared in `interfaces.ts` as `z.infer<typeof …Schema>`, not written by hand. `src/common/interfaces/` is only for types shared by several domains. Don't create re-export (barrel) files.
+- Imports from another folder use the `@src/*` alias from `tsconfig.json` (`@src/common/data/setup`, `@src/pages/mainPage`); imports of a file in the same folder stay relative (`./schemas`). No `../` paths.
 - Naming: REST response bodies are `<Name>Response`, their schemas `<Name>ResponseSchema`. The type `Customer` in the customer domain is the test data of a customer (with credentials), not a REST response.
 - Keep files LF line endings (enforced by `.gitattributes` and Prettier).
 
@@ -143,9 +153,9 @@ See [`docker-compose.yml`](docker-compose.yml), [`Dockerfile`](Dockerfile) and R
 GitHub Actions — `.github/workflows/playwright-tests.yml` runs on push/PR to `main` and manually, with two parallel jobs:
 
 - `checks`: `npm ci` → lint → typecheck → format:check.
-- `ui`: `npm run docker:test` (same as locally; runs all projects, the `api` project included) → upload `playwright-report/` and `test-results/` as an artifact (always).
+- `ui` (named “Tests”): `npm run docker:test` (same as locally; runs all projects, the `api` project included) → upload `playwright-report/` and `test-results/` as an artifact (always).
 
-Qase mode in `ui`: `QASE_MODE=testops` only when repo variable `QASE_MODE` is `testops` **and** variable `QASE_TESTOPS_PROJECT` and secret `QASE_TESTOPS_API_TOKEN` are both set; otherwise `off`. Optional variables `ENV`, `TENANT`.
+Qase mode in `ui`: `QASE_MODE=testops` only when repo variable `QASE_MODE` is `testops` **and** variable `QASE_TESTOPS_PROJECT` and secret `QASE_TESTOPS_API_TOKEN` are both set; otherwise `off`.
 
 ## Qase and Claude Code tooling
 
@@ -165,5 +175,5 @@ Qase mode in `ui`: `QASE_MODE=testops` only when repo variable `QASE_MODE` is `t
 ## Git
 
 - Default branch: `main`; remote: https://github.com/olarcik/pw-autotests-parabank
-- Create feature branches for new work (`feature/<short-name>`), open a PR to `main`.
+- Create a branch for new work with a prefix: `feature/`, `refactor/` or `chore/` (e.g. `feature/<short-name>`), open a PR to `main`.
 - Commit messages: imperative mood, short summary line (e.g. `Add login page object and auth fixture`).

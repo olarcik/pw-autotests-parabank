@@ -36,13 +36,11 @@ jobs:
         run: npm run format:check
 
   ui:
-    name: UI tests
+    name: Tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
     # Passed into the playwright-tests container by docker-compose.yml; BASE_URL is set there to the parabank service.
     env:
-      ENV: ${{ vars.ENV || 'dev' }}
-      TENANT: ${{ vars.TENANT || 'parabank' }}
       # Qase is opt-in: results are sent only when QASE_MODE=testops and both the project and the token
       # are configured (secrets are not available, e.g., to PRs from forks). Anything else runs with "off".
       QASE_MODE: ${{ vars.QASE_MODE == 'testops' && vars.QASE_TESTOPS_PROJECT != '' && secrets.QASE_TESTOPS_API_TOKEN != '' && 'testops' || 'off' }}

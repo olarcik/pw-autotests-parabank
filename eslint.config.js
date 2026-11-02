@@ -13,6 +13,10 @@ module.exports = defineConfig(
     languageOptions: {
       parserOptions: { project: './tsconfig.eslint.json', tsconfigRootDir: __dirname },
     },
+    rules: {
+      // A missed `await` lets a Playwright action or check run unawaited and the test pass falsely
+      '@typescript-eslint/no-floating-promises': 'error',
+    },
   },
   {
     files: ['eslint.config.js'],

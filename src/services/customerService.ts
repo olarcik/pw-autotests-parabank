@@ -1,7 +1,7 @@
 import { test } from '@playwright/test';
-import { endpoints } from '../common/api/endpoints';
-import { RequestHandler } from '../common/api/requestHandler';
-import { Customer } from '../common/domains/customer/interfaces';
+import { endpoints } from '@src/common/api/endpoints';
+import { RequestHandler } from '@src/common/api/requestHandler';
+import { Customer } from '@src/common/domains/customer/interfaces';
 
 // Registration has no REST method: it goes through the register.htm form (docs/parabank-api.md, section 5).
 // Methods only send requests and return the responses; tests assert them. They never retry: the false

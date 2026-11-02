@@ -1,5 +1,5 @@
-import { endpoints } from '../common/api/endpoints';
-import { RequestHandler } from '../common/api/requestHandler';
+import { endpoints } from '@src/common/api/endpoints';
+import { RequestHandler } from '@src/common/api/requestHandler';
 
 // Methods only send requests and return the responses; tests assert them
 export class AccountService {

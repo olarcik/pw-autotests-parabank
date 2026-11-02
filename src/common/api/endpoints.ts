@@ -1,4 +1,4 @@
-import { URLS } from '../data/setup';
+import { URLS } from '@src/common/data/setup';
 
 // All paths the tests call (docs/parabank-api.md). REST paths are relative to URLS.api and go through
 // RequestHandler.path(); the register.htm form is not REST, so it is a full URL for RequestHandler.url().

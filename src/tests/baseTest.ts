@@ -1,18 +1,18 @@
 import { test, expect as baseExpect, Page } from '@playwright/test';
 import { z } from 'zod';
-import { attachExchanges } from '../common/api/exchangeLog';
-import { RequestHandler } from '../common/api/requestHandler';
-import { PAGE_TITLES } from '../common/data/test';
-import { URLS } from '../common/data/setup';
-import { generateCustomer } from '../common/domains/customer/data';
-import { Customer, CustomerResponse } from '../common/domains/customer/interfaces';
-import { CustomerResponseSchema } from '../common/domains/customer/schemas';
-import { schemaMatchers } from '../common/utils/matchers';
-import { AccountsOverviewPage } from '../pages/accountsOverviewPage';
-import { MainPage } from '../pages/mainPage';
-import { RegisterPage } from '../pages/registerPage';
-import { AccountService } from '../services/accountService';
-import { CustomerService } from '../services/customerService';
+import { attachExchanges } from '@src/common/api/exchangeLog';
+import { RequestHandler } from '@src/common/api/requestHandler';
+import { PAGE_TITLES } from '@src/common/data/testData';
+import { URLS } from '@src/common/data/setup';
+import { generateCustomer } from '@src/common/domains/customer/data';
+import { Customer, CustomerResponse } from '@src/common/domains/customer/interfaces';
+import { CustomerResponseSchema } from '@src/common/domains/customer/schemas';
+import { schemaMatchers } from '@src/common/utils/matchers';
+import { AccountsOverviewPage } from '@src/pages/accountsOverviewPage';
+import { MainPage } from '@src/pages/mainPage';
+import { RegisterPage } from '@src/pages/registerPage';
+import { AccountService } from '@src/services/accountService';
+import { CustomerService } from '@src/services/customerService';
 
 const pagesMap = {
   mainPage: MainPage,

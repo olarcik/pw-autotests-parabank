@@ -13,7 +13,9 @@ The tests can run against a local ParaBank started from the official
 - Node.js LTS and dependencies installed: `npm ci`, then `npx playwright install`
 - Port `8080` free on the host, or another one set in `PARABANK_PORT` (see Troubleshooting)
 - A `.env` file created from the template: `cp .env.example .env` (PowerShell: `Copy-Item .env.example .env`).
-  It sets `BASE_URL=http://localhost:8080/parabank`, which the tests use for every URL.
+  It sets `ENV=local`, so the tests take `BASE_URL=http://localhost:8080/parabank` from `env/local.env`
+  (`ENV=demo` uses the public demo from `env/demo.env`). Values from the shell or CI win over `.env`,
+  and `.env` wins over `env/<ENV>.env`.
 
 ### Commands
 
@@ -66,7 +68,7 @@ the containers (`docker compose down`). The command exits with the tests' result
 - The `playwright-tests` service is in the Compose profile `tests`, so `npm run docker:up` still starts ParaBank alone.
 - Inside the Compose network the tests use `BASE_URL=http://parabank:8080/parabank`: `localhost` there would be
   the test container itself, while `parabank` is the service name that Compose DNS resolves to the app container.
-  `BASE_URL` from `.env` is ignored; the other variables (`ENV`, `TENANT`, `QASE_*`) are passed through from `.env`.
+  `BASE_URL` from `.env` is ignored and `ENV` is fixed to `local`; the `QASE_*` variables are passed through from `.env`.
 - `playwright-report/` and `test-results/` are mounted from the host, so after the run open the report with
   `npm run report`.
 - To pass Playwright arguments, run the service directly, e.g.
@@ -82,14 +84,14 @@ When upgrading Playwright, bump `PLAYWRIGHT_VERSION` in `Dockerfile` too; the im
 (and manually from the Actions tab), with two parallel jobs:
 
 - **Lint, type check and format check** — `npm ci`, `npm run lint`, `npm run typecheck`, `npm run format:check`.
-- **UI tests** — `npm run docker:test`, the same command as locally (all projects, API tests included). The HTML report and
+- **Tests** — `npm run docker:test`, the same command as locally (all projects, API tests included). The HTML report and
   test results are uploaded as the `playwright-report` artifact even when tests fail.
 
 A new push to the same branch cancels the run still in progress. The workflow has read-only repository permissions.
 
 Optional configuration (Settings → Secrets and variables → Actions):
 
-- variables: `ENV`, `TENANT`, `QASE_MODE` (`testops` to send results to Qase), `QASE_TESTOPS_PROJECT`;
+- variables: `QASE_MODE` (`testops` to send results to Qase), `QASE_TESTOPS_PROJECT`;
   results go to Qase only when `QASE_MODE=testops`, `QASE_TESTOPS_PROJECT` and the `QASE_TESTOPS_API_TOKEN`
   secret are all set — otherwise the job runs with `QASE_MODE=off`;
 - secret: `QASE_TESTOPS_API_TOKEN`.
