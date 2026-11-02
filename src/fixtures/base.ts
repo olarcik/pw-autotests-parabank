@@ -1,17 +1,12 @@
-import { test, expect as baseExpect, Page } from '@playwright/test';
-import { z } from 'zod';
-import { attachExchanges } from '@src/common/api/exchangeLog';
+import { test, Page } from '@playwright/test';
 import { RequestHandler } from '@src/common/api/requestHandler';
-import { PAGE_TITLES } from '@src/common/data/testData';
-import { URLS } from '@src/common/data/setup';
-import { generateCustomer } from '@src/common/domains/customer/data';
-import { Customer, CustomerResponse } from '@src/common/domains/customer/interfaces';
-import { CustomerResponseSchema } from '@src/common/domains/customer/schemas';
 import { AccountsOverviewPage } from '@src/pages/accountsOverviewPage';
 import { MainPage } from '@src/pages/mainPage';
 import { RegisterPage } from '@src/pages/registerPage';
 import { AccountService } from '@src/services/accountService';
 import { CustomerService } from '@src/services/customerService';
+import { apiFixture } from './apiFixture';
+import { RegisteredCustomer, registeredCustomerFixture } from './customerFixtures';
 
 const pagesMap = {
   mainPage: MainPage,
@@ -57,22 +52,14 @@ type ServiceFixtures = {
 };
 
 type ApiFixtures = ServiceFixtures & {
-  // HTTP client on the REST base; built on `request`, so one test keeps its session cookies and
-  // tests never share them
+  // See apiFixture.ts
   api: RequestHandler;
-  // A new customer registered through the form and logged in via REST to get its id. Lazy: registers
-  // one only in tests that ask for it. Registration tests don't use it, they check registration
-  // themselves. The browser is not logged in. No retries inside: the false "username already exists"
-  // is left to `retries`.
-  registeredCustomer: { data: Customer; response: CustomerResponse };
+  // See customerFixtures.ts
+  registeredCustomer: RegisteredCustomer;
 };
 
 export const baseTest = pageTest.extend<ApiFixtures>({
-  api: async ({ request }, use, testInfo) => {
-    const api = new RequestHandler(request, URLS.api);
-    await use(api);
-    await attachExchanges(testInfo, api.log);
-  },
+  api: apiFixture,
 
   // Object.entries loses the class types; ServiceFixtures restores them for tests
   ...Object.entries(servicesMap).reduce(
@@ -89,29 +76,7 @@ export const baseTest = pageTest.extend<ApiFixtures>({
     >,
   ),
 
-  registeredCustomer: async ({ customerService }, use) => {
-    const customer = generateCustomer();
-
-    const registerResponse = await customerService.registerCustomer(customer);
-    baseExpect(
-      await registerResponse.text(),
-      `registeredCustomer fixture: registration of ${customer.username} did not open "${PAGE_TITLES.customerCreated}"`,
-    ).toContain(`<title>${PAGE_TITLES.customerCreated}</title>`);
-
-    const loginResponse = await customerService.login(customer);
-    baseExpect(
-      loginResponse.status(),
-      `registeredCustomer fixture: REST login of ${customer.username} failed: ${await loginResponse.text()}`,
-    ).toBe(200);
-    const parsed = CustomerResponseSchema.safeParse(await loginResponse.json());
-    if (!parsed.success) {
-      throw new Error(
-        `registeredCustomer fixture: login response does not match CustomerResponseSchema\n${z.prettifyError(parsed.error)}`,
-      );
-    }
-
-    await use({ data: customer, response: parsed.data });
-  },
+  registeredCustomer: registeredCustomerFixture,
 });
 
 export { baseTest as test };
