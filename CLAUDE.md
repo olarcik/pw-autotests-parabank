@@ -45,8 +45,12 @@ src/
 │   └── domains/<domain>/   # only data about objects: interfaces.ts, data.ts, schemas.ts
 ├── services/           # Service Objects, one file per ParaBank resource: <resource>Service.ts
 ├── pages/              # <feature>Page.ts: mainPage (header, login, left panel), registerPage, accountsOverviewPage
+├── fixtures/
+│   ├── base.ts         # pagesMap, servicesMap: page-object and service fixtures generated from them; connects the fixtures below; exports `test`
+│   ├── apiFixture.ts   # `api` fixture: RequestHandler on `request`, attaches the exchange log of failed tests
+│   └── customerFixtures.ts # `registeredCustomer` fixture and its type RegisteredCustomer
 └── tests/
-    ├── baseTest.ts     # extended `test`: page-object and service fixtures (generated from pagesMap and servicesMap), `api` and `registeredCustomer` fixtures; `expect` extended with schemaMatchers
+    ├── baseTest.ts     # the only entry for specs: `test` from fixtures/base.ts, `expect` extended with schemaMatchers, `qase`
     ├── api/            # API tests, Playwright project `api` (no browser)
     └── ui/             # UI tests, projects chromium / firefox / webkit
 env/                    # <ENV>.env per environment (local, demo): BASE_URL, no secrets, committed
@@ -61,6 +65,7 @@ LICENSE                 # MIT
 ### Tests
 
 - Import `test` and `expect` from `src/tests/baseTest.ts` (`@src/tests/baseTest`), **not** from `@playwright/test`.
+- Fixtures with logic live in `src/fixtures/`, one file per fixture group (`apiFixture.ts`, `customerFixtures.ts`), exported as functions with explicit parameter types; `src/fixtures/base.ts` connects them; `src/tests/baseTest.ts` gives specs `test`, `expect` and `qase`. `src/tests/` holds only the `api/` and `ui/` specs and `baseTest.ts`. Fixture files never import `base.ts` or `baseTest.ts` (circular import); they use `expect` from `@playwright/test`.
 - File names: `<feature>.spec.ts` (kebab-case), placed in `src/tests/ui/` (UI) or `src/tests/api/` (API).
 - Use page-object and service fixtures (`async ({ mainPage, customerService }) => ...`) instead of `new XPage(page)` or `new XService(api)` inside tests.
 - Use web-first assertions (`await expect(locator).toBeVisible()`); no `waitForTimeout` or hard sleeps.
@@ -86,10 +91,10 @@ LICENSE                 # MIT
 - Services live in `src/services/<resource>Service.ts`, class name `<Resource>Service`, one per ParaBank resource: a standalone class (no base class) that takes `api: RequestHandler` in the constructor.
   - One method is one HTTP request and returns the raw `APIResponse`. No checks (`expect`), parsing or retries inside services; tests and fixtures assert. Single methods are not wrapped in `test.step`: `RequestHandler` already makes the request steps.
   - The only composite method is `CustomerService.registerCustomer(customer)`: `GET` and `POST` of the form inside `test.step('Register a new customer')`, returns the `POST` response, no checks. Tests that check registration itself call `openRegisterForm()` and `submitRegisterForm(customer)` separately.
-  - Services import `test` from `@playwright/test`, not from `baseTest.ts` (it imports them, so that would be a circular import).
-  - Register every new service by adding it to `servicesMap` in `baseTest.ts` — fixtures and their types are generated from it.
+  - Services import `test` from `@playwright/test`, not from `baseTest.ts` or `src/fixtures/` (they import services, so that would be a circular import).
+  - Register every new service by adding it to `servicesMap` in `src/fixtures/base.ts` — fixtures and their types are generated from it.
 - Step names in tests describe meaning — a user or system action (`Register a new customer`, `Log in as the new customer`) — without the method or endpoint; HTTP details are shown by the handler's nested steps.
-- Test data can be prepared through API fixtures: `registeredCustomer` registers a new customer through the form, logs in via REST to get the id and gives `{ data, response }`: `registeredCustomer.data` is the test data (`Customer`), `registeredCustomer.response.id` comes from the REST response (`CustomerResponse`). It asserts registration and login itself. It is lazy (only tests that ask for it register one) and has no retries inside. Registration tests don't use it — they check registration themselves. In UI tests note that it uses the `request` context, not the browser: the page is not logged in.
+- Test data can be prepared through API fixtures: `registeredCustomer` (`src/fixtures/customerFixtures.ts`) registers a new customer through the form, logs in via REST to get the id and gives `{ data, response }`: `registeredCustomer.data` is the test data (`Customer`), `registeredCustomer.response.id` comes from the REST response (`CustomerResponse`). It asserts registration and login itself. It is lazy (only tests that ask for it register one) and has no retries inside. Registration tests don't use it — they check registration themselves. In UI tests note that it uses the `request` context, not the browser: the page is not logged in.
 - Check JSON bodies with `expect(body).toMatchSchema(<Zod schema>)` (from `baseTest.ts`), then compare values; amounts are JSON numbers (`515.5`, not `'515.50'`).
 
 ### Page objects
@@ -100,7 +105,7 @@ LICENSE                 # MIT
 - Prefer user-facing locators: `getByRole`, `getByLabel`, `getByText`, `getByTestId`. Avoid CSS/XPath unless there is no alternative.
 - Page objects expose actions (`login(customer)`, `openAccount(type)`). Assertions belong in tests; the only exception is a composite `expect…` method that checks the state of one page (e.g. `RegisterPage.expectFormValues(customer)`). Single checks stay in tests.
 - The left panel of a logged-in customer (welcome text, Account Services menu, Log Out) is on every page after login. It stays in `MainPage`; don't create a separate class or repeat it in other page objects.
-- Register every new page object by adding it to `pagesMap` in `baseTest.ts` — fixtures and their types are generated from it.
+- Register every new page object by adding it to `pagesMap` in `src/fixtures/base.ts` — fixtures and their types are generated from it.
 
 ### Data & configuration
 
@@ -134,7 +139,7 @@ The ones in `.env.example` are `ENV` and the three `QASE_*` below; the others ar
 - Formatting is owned by Prettier (`.prettierrc`: single quotes, semicolons, trailing commas, width 100, 2 spaces, LF; exclusions in `.prettierignore`). Run `npm run format` instead of formatting by hand; ESLint style rules that conflict with it are disabled by `eslint-config-prettier`.
 - TypeScript strict mode; no `any` unless justified.
 - ESLint rule `@typescript-eslint/no-floating-promises` is on: every async call (service and page methods, `expect`, `test.step`) is awaited.
-- Domain types live in `src/common/domains/<domain>/interfaces.ts` and are imported directly from there. Zod schemas of API responses live in `schemas.ts` next to it; their types are declared in `interfaces.ts` as `z.infer<typeof …Schema>`, not written by hand. `src/common/interfaces/` is only for types shared by several domains. Don't create re-export (barrel) files.
+- Domain types live in `src/common/domains/<domain>/interfaces.ts` and are imported directly from there. Zod schemas of API responses live in `schemas.ts` next to it; their types are declared in `interfaces.ts` as `z.infer<typeof …Schema>`, not written by hand. `src/common/interfaces/` is only for types shared by several domains. Don't create re-export (barrel) files; the only allowed entry point is `src/tests/baseTest.ts`, because it adds the custom matchers to `expect` and exports `qase`.
 - Imports from another folder use the `@src/*` alias from `tsconfig.json` (`@src/common/data/setup`, `@src/pages/mainPage`); imports of a file in the same folder stay relative (`./schemas`). No `../` paths.
 - Naming: REST response bodies are `<Name>Response`, their schemas `<Name>ResponseSchema`. The type `Customer` in the customer domain is the test data of a customer (with credentials), not a REST response.
 - Keep files LF line endings (enforced by `.gitattributes` and Prettier).
