@@ -22,7 +22,7 @@ On first use in a session call `qase_project_context` (`code`) to learn suites, 
 ## Automate an existing case ("automate case 42")
 
 1. `qase_get` with `entity: "case"`, `code`, `id: 42` — read title, preconditions, steps, expected results, suite.
-2. Write the spec following `CLAUDE.md` conventions: `src/tests/ui/<feature>.spec.ts`, import `test, expect, qase` from `@src/tests/baseTest`, page-object fixtures from `pagesMap`, web-first assertions.
+2. Write the spec following `CLAUDE.md` conventions; the folder depends on the case field **Layer**: `e2e` → `src/tests/ui/<feature>.spec.ts` with page-object fixtures; `api` → `src/tests/api/<feature>.spec.ts` with service fixtures (`customerService`, etc.) and `layer: 'api'` in `qase.fields`.
 3. First line of the test body: `qase.id(42);`. Map each Qase step to a `test.step('<step action>', ...)` and assert its expected result inside it.
 4. Run lint + typecheck, then the spec on chromium.
 5. Offer to set the case's `automation` to automated with `qase_case_upsert` (`id: 42`) — confirm first.
@@ -30,12 +30,12 @@ On first use in a session call `qase_project_context` (`code`) to learn suites, 
 ## Create cases for specs without IDs
 
 1. Find tests with no `qase.id(` call under `src/tests/`.
-2. For each, propose a case: title = test title, steps = its `test.step` titles, suite = matching suite from project context (ask if none fits), `automation` = automated.
+2. For each, propose a case: title = test title, steps = its `test.step` titles, suite = by layer, `E2E / <feature>` for UI or `API / <feature>` for API (ask if none fits), `automation` = automated.
 3. After confirmation create with `qase_case_upsert` (one) or `qase_case_bulk_create` (many), then insert `qase.id(<new id>);` as the first line of each test.
 
 ## Audit links
 
-Collect every `qase.id(...)` in `src/tests/`, check they exist with `qql_search` (or `qase_get` per ID), and report: missing cases, duplicate IDs across tests, cases marked automated that no spec references.
+Collect every `qase.id(...)` in `src/tests/`, check they exist with `qql_search` (or `qase_get` per ID), and report: missing cases, duplicate IDs across tests (the same `qase.id` on rows of one parameterized test with different `qase.parameters` is not a duplicate), cases marked automated that no spec references.
 
 ## Results and defects
 

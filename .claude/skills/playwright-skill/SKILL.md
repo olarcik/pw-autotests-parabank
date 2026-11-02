@@ -13,7 +13,8 @@ The browser is for **discovery and debugging only**. Every result ends up as cod
 
 - Read the page with `browser_snapshot` (accessibility tree — roles, names, refs). Use `browser_take_screenshot` only when layout/visuals matter.
 - Act with `browser_click`, `browser_type`, `browser_fill_form`, `browser_select_option`, `browser_press_key` using refs from the latest snapshot. Each action response shows the Playwright code it ran — reuse it as a starting point for locators.
-- Base URL: `BASE_URL` from `.env` (default `http://localhost:8080/parabank`) — a local ParaBank in Docker, not the public demo. Start it with `npm run docker:up` before opening pages.
+- Base URL: `BASE_URL` from `env/<ENV>.env` (`ENV` defaults to `local`: `http://localhost:8080/parabank`, a local ParaBank in Docker); `.env` or the shell can override it. Start the local app with `npm run docker:up` before opening pages.
+- Safety: on `admin.htm` never click Initialize DB, Clean DB, Shutdown (JMS) or Submit in Application Settings — they change the shared app state for every test. Looking at the page is fine, clicking is not.
 - Call `browser_close` when finished.
 
 ## Create or extend a page object
@@ -28,9 +29,10 @@ The browser is for **discovery and debugging only**. Every result ends up as cod
 
 1. Walk through the flow in the browser step by step, snapshotting after each step to confirm the expected result.
 2. Turn it into `src/tests/ui/<feature>.spec.ts`: import `test, expect, qase` from `@src/tests/baseTest`, use page-object fixtures, one `test.step` per scenario step, web-first assertions (`toBeVisible`, `toHaveText`, `toHaveURL`), no `waitForTimeout`.
-3. If the scenario has a Qase case, add `qase.id(<id>)` as the first line (see `qase-skill` — "automate case N" uses both).
-4. Data: the local ParaBank database lives in the container and is shared by tests running in parallel — register a fresh customer with generated data (`generateCustomer` in `src/common/domains/customer/data.ts`) rather than relying on existing accounts. Never hard-code credentials.
-5. Run `npm run lint`, `npm run typecheck`, `npm run format:check`, then `npx playwright test <spec> --project=chromium` (ParaBank must be up: `npm run docker:up`). Fix until green.
+3. One scenario on several data sets: a loop that registers a separate test per row with a unique title, not a loop inside one test (see “Parameterized tests” in `CLAUDE.md`).
+4. If the scenario has a Qase case, add `qase.id(<id>)` as the first line (see `qase-skill` — "automate case N" uses both).
+5. Data: the local ParaBank database lives in the container and is shared by tests running in parallel — register a fresh customer with generated data (`generateCustomer` in `src/common/domains/customer/data.ts`) rather than relying on existing accounts. Never hard-code credentials.
+6. Run `npm run lint`, `npm run typecheck`, `npm run format:check`, then `npx playwright test <spec> --project=chromium` (ParaBank must be up: `npm run docker:up`). Fix until green.
 
 ## Debug a failing test
 

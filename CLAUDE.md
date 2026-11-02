@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-End-to-end UI/API test automation for **ParaBank** using Playwright + TypeScript. Tests run against a local ParaBank in Docker (image `parasoft/parabank`, pinned by digest in `docker-compose.yml`), not the public demo site.
+End-to-end UI/API test automation for **ParaBank** using Playwright + TypeScript. By default tests run against a local ParaBank in Docker (image `parasoft/parabank`, pinned by digest in `docker-compose.yml`). The public demo is available with `ENV=demo`, but it is a shared third-party service: don’t run the full suite against it.
 The framework is built incrementally: folders exist up front (kept with `.gitkeep`), and code is added as tests are written.
 
 ## Commands
@@ -65,6 +65,7 @@ LICENSE                 # MIT
 - Use page-object and service fixtures (`async ({ mainPage, customerService }) => ...`) instead of `new XPage(page)` or `new XService(api)` inside tests.
 - Use web-first assertions (`await expect(locator).toBeVisible()`); no `waitForTimeout` or hard sleeps.
 - Tests must be independent and runnable in parallel (`fullyParallel: true`). Create the data a test needs; don't rely on another test's state.
+- Parameterized tests (one scenario on several data sets): loop over the data and register a separate test per row with a unique title (as in Playwright test-parameterize), not a loop inside one test; hooks stay outside the loop. Tests of one Qase case get the same `qase.id()` and different `qase.parameters()`. Example: the required-field test in `src/tests/ui/register.spec.ts`.
 - Use `test.step()` for multi-step flows to keep reports readable (steps are also sent to Qase).
 - Tests navigate as a user: start on the Home page (`test.beforeEach` with `mainPage.open()`) and reach the target page through visible steps (e.g. `mainPage.openRegisterPage()`) inside the test. A direct `goto` to an inner page is allowed only when the test checks exactly that (e.g. a direct link).
 - Link each test to its Qase case with `qase.id(<id>)` as the first line of the test body (`qase` is exported from `baseTest.ts`). The ID in `qase.id()` always equals the case ID in Qase. Don't use the `qase(id, 'title')` title wrapper — it fails the `playwright/valid-title` lint rule. Optional metadata: `qase.fields({ severity, priority, layer })`, `qase.parameters()` (e.g. the data row of a parameterized test), `qase.suite()`, `qase.attach()`, `qase.ignore()`.
@@ -132,6 +133,7 @@ The ones in `.env.example` are `ENV` and the three `QASE_*` below; the others ar
 
 - Formatting is owned by Prettier (`.prettierrc`: single quotes, semicolons, trailing commas, width 100, 2 spaces, LF; exclusions in `.prettierignore`). Run `npm run format` instead of formatting by hand; ESLint style rules that conflict with it are disabled by `eslint-config-prettier`.
 - TypeScript strict mode; no `any` unless justified.
+- ESLint rule `@typescript-eslint/no-floating-promises` is on: every async call (service and page methods, `expect`, `test.step`) is awaited.
 - Domain types live in `src/common/domains/<domain>/interfaces.ts` and are imported directly from there. Zod schemas of API responses live in `schemas.ts` next to it; their types are declared in `interfaces.ts` as `z.infer<typeof …Schema>`, not written by hand. `src/common/interfaces/` is only for types shared by several domains. Don't create re-export (barrel) files.
 - Imports from another folder use the `@src/*` alias from `tsconfig.json` (`@src/common/data/setup`, `@src/pages/mainPage`); imports of a file in the same folder stay relative (`./schemas`). No `../` paths.
 - Naming: REST response bodies are `<Name>Response`, their schemas `<Name>ResponseSchema`. The type `Customer` in the customer domain is the test data of a customer (with credentials), not a REST response.
@@ -151,7 +153,7 @@ See [`docker-compose.yml`](docker-compose.yml), [`Dockerfile`](Dockerfile) and R
 GitHub Actions — `.github/workflows/playwright-tests.yml` runs on push/PR to `main` and manually, with two parallel jobs:
 
 - `checks`: `npm ci` → lint → typecheck → format:check.
-- `ui`: `npm run docker:test` (same as locally; runs all projects, the `api` project included) → upload `playwright-report/` and `test-results/` as an artifact (always).
+- `ui` (named “Tests”): `npm run docker:test` (same as locally; runs all projects, the `api` project included) → upload `playwright-report/` and `test-results/` as an artifact (always).
 
 Qase mode in `ui`: `QASE_MODE=testops` only when repo variable `QASE_MODE` is `testops` **and** variable `QASE_TESTOPS_PROJECT` and secret `QASE_TESTOPS_API_TOKEN` are both set; otherwise `off`.
 
@@ -173,5 +175,5 @@ Qase mode in `ui`: `QASE_MODE=testops` only when repo variable `QASE_MODE` is `t
 ## Git
 
 - Default branch: `main`; remote: https://github.com/olarcik/pw-autotests-parabank
-- Create feature branches for new work (`feature/<short-name>`), open a PR to `main`.
+- Create a branch for new work with a prefix: `feature/`, `refactor/` or `chore/` (e.g. `feature/<short-name>`), open a PR to `main`.
 - Commit messages: imperative mood, short summary line (e.g. `Add login page object and auth fixture`).
