@@ -1,7 +1,8 @@
 {
   "name": "pw-auto-parabank",
   "version": "1.0.0",
-  "description": "",
+  "private": true,
+  "description": "UI and API test automation framework for ParaBank, Playwright + TypeScript",
   "scripts": {
     "test": "playwright test",
     "lint": "eslint .",
@@ -16,9 +17,18 @@
     "test:host-docker": "npm run docker:up && playwright test",
     "prepare": "husky || true"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "playwright",
+    "typescript",
+    "e2e",
+    "api-testing",
+    "test-automation",
+    "parabank",
+    "qase",
+    "docker"
+  ],
+  "author": "Vladislav Olaru",
+  "license": "MIT",
   "type": "commonjs",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
