@@ -111,12 +111,15 @@ LICENSE                 # MIT
 - Generate unique data (usernames, emails) with generators in the domain's `data.ts` (`generateCustomer` in `src/common/domains/customer/data.ts`), not hard-coded values.
 - Shared static values (page titles, validation messages, expected amounts, fixed inputs) live in `src/common/data/testData.ts`, grouped and commented; specs keep no module-level constants.
 
-### Environment variables (`.env.example`)
+### Environment variables
+
+The ones in `.env.example` are `ENV` and the three `QASE_*` below; the others are optional and set only when needed.
 
 - `ENV` — environment name, selects `env/<ENV>.env`: `local` (default, Docker app) or `demo` (public site). Fixed to `local` in `docker-compose.yml`.
 - `BASE_URL` — app URL; comes from `env/<ENV>.env`. Not in `.env.example`: set it in `.env` or the shell only to override (e.g. another port). In Compose it is `http://parabank:8080/parabank`.
-- `PARABANK_PORT` — host port of the ParaBank container (default `8080`; Compose only). If you change it, set `BASE_URL` in `.env` to match.
-- `QASE_MODE` (`off` | `testops` | `report`), `QASE_TESTOPS_PROJECT`, `QASE_TESTOPS_API_TOKEN`, `QASE_TESTOPS_RUN_TITLE` — Qase reporter only, read in `playwright.config.ts` or by the reporter, not in `setup.ts`.
+- `PARABANK_PORT` — optional, not in `.env.example`: host port of the ParaBank container (default `8080`; Compose only). If you change it, set `BASE_URL` in `.env` to match.
+- `QASE_MODE` (`off` | `testops` | `report`), `QASE_TESTOPS_PROJECT`, `QASE_TESTOPS_API_TOKEN` — Qase reporter only, read in `playwright.config.ts` or by the reporter, not in `setup.ts`.
+- `QASE_TESTOPS_RUN_TITLE` — optional, not in `.env.example`: run name in Qase (a default name is used when empty); in CI it is set by the workflow.
 - `CI` — set by the CI runner (retries, single worker, `forbidOnly`).
 
 ### Formatting
