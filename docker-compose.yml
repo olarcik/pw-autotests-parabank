@@ -47,8 +47,8 @@ services:
       BASE_URL: http://parabank:8080/parabank
       # The rest is taken from the shell or .env (locally) and from the job env (CI); unset stays empty.
       CI: ${CI:-}
-      ENV: ${ENV:-dev}
-      TENANT: ${TENANT:-parabank}
+      # Fixed: in Compose the tests always run against the local app (the image has no env/ folder).
+      ENV: local
       QASE_MODE: ${QASE_MODE:-off}
       QASE_TESTOPS_PROJECT: ${QASE_TESTOPS_PROJECT:-}
       QASE_TESTOPS_API_TOKEN: ${QASE_TESTOPS_API_TOKEN:-}

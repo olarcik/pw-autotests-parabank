@@ -35,7 +35,7 @@ src/
 │   │   ├── exchangeLog.ts     # Exchange type, masking of secrets, attachExchanges: attachment files of failed tests
 │   │   └── endpoints.ts       # all request paths (REST paths and the register.htm URL)
 │   ├── data/
-│   │   ├── setup.ts    # ENV, TENANT, BASE_URL, URLS (app, api) — read from process.env
+│   │   ├── setup.ts    # loads .env and env/<ENV>.env; ENV, BASE_URL, URLS (app, api)
 │   │   └── testData.ts # shared static test values
 │   ├── interfaces/     # types shared by several domains (no barrel files)
 │   ├── utils/          # shared generators and helpers
@@ -49,9 +49,11 @@ src/
     ├── baseTest.ts     # extended `test`: page-object and service fixtures (generated from pagesMap and servicesMap), `api` and `registeredCustomer` fixtures; `expect` extended with schemaMatchers
     ├── api/            # API tests, Playwright project `api` (no browser)
     └── ui/             # UI tests, projects chromium / firefox / webkit
+env/                    # <ENV>.env per environment (local, demo): BASE_URL, no secrets, committed
 files/uploads/          # input files for upload tests
 files/downloads/        # download output (git-ignored)
 storageStates/          # saved auth sessions, created at runtime (git-ignored)
+LICENSE                 # MIT
 ```
 
 ## Conventions
@@ -101,17 +103,19 @@ storageStates/          # saved auth sessions, created at runtime (git-ignored)
 
 ### Data & configuration
 
-- Environment values come from `.env` (loaded by `playwright.config.ts` via dotenv). Access them through `src/common/data/setup.ts`, never `process.env` directly in tests or pages.
-- When adding a variable, update `.env.example`, `setup.ts`, the `playwright-tests` service `environment:` in `docker-compose.yml`, and the `env:` block of the `ui` job in `.github/workflows/playwright-tests.yml`.
+- Environment values are loaded by `src/common/data/setup.ts` itself (dotenv, never overwriting a set value), so the precedence is: shell / CI / Compose > `.env` > `env/<ENV>.env`. `playwright.config.ts` imports `setup.ts` first. Access values through `setup.ts`, never `process.env` directly in tests or pages.
+- `setup.ts` throws if `BASE_URL` is still unset; a missing `env/<ENV>.env` alone is not an error (the Docker image has no `env/`, Compose sets `BASE_URL`).
+- When adding a variable: a per-environment value (URL, etc.) goes into every `env/<ENV>.env`; a personal or secret value goes into `.env.example`. Then update `setup.ts`, and if the tests in Docker need it, the `playwright-tests` service `environment:` in `docker-compose.yml` and the `env:` block of the `ui` job in `.github/workflows/playwright-tests.yml`.
+- When adding an environment, add `env/<name>.env` with at least `BASE_URL`.
 - Never commit credentials or `.env`. The only CI secret is `QASE_TESTOPS_API_TOKEN` (GitHub Actions secrets).
 - Generate unique data (usernames, emails) with generators in the domain's `data.ts` (`generateCustomer` in `src/common/domains/customer/data.ts`), not hard-coded values.
 - Shared static values (page titles, validation messages, expected amounts, fixed inputs) live in `src/common/data/testData.ts`, grouped and commented; specs keep no module-level constants.
 
 ### Environment variables (`.env.example`)
 
-- `ENV`, `TENANT` — environment name and tenant (`setup.ts`; defaults `dev`, `parabank`).
-- `BASE_URL` — app URL for tests on the host (default `http://localhost:8080/parabank`).
-- `PARABANK_PORT` — host port of the ParaBank container (default `8080`; Compose only). Keep `BASE_URL` in sync.
+- `ENV` — environment name, selects `env/<ENV>.env`: `local` (default, Docker app) or `demo` (public site). Fixed to `local` in `docker-compose.yml`.
+- `BASE_URL` — app URL; comes from `env/<ENV>.env`. Not in `.env.example`: set it in `.env` or the shell only to override (e.g. another port). In Compose it is `http://parabank:8080/parabank`.
+- `PARABANK_PORT` — host port of the ParaBank container (default `8080`; Compose only). If you change it, set `BASE_URL` in `.env` to match.
 - `QASE_MODE` (`off` | `testops` | `report`), `QASE_TESTOPS_PROJECT`, `QASE_TESTOPS_API_TOKEN`, `QASE_TESTOPS_RUN_TITLE` — Qase reporter only, read in `playwright.config.ts` or by the reporter, not in `setup.ts`.
 - `CI` — set by the CI runner (retries, single worker, `forbidOnly`).
 
@@ -146,7 +150,7 @@ GitHub Actions — `.github/workflows/playwright-tests.yml` runs on push/PR to `
 - `checks`: `npm ci` → lint → typecheck → format:check.
 - `ui`: `npm run docker:test` (same as locally; runs all projects, the `api` project included) → upload `playwright-report/` and `test-results/` as an artifact (always).
 
-Qase mode in `ui`: `QASE_MODE=testops` only when repo variable `QASE_MODE` is `testops` **and** variable `QASE_TESTOPS_PROJECT` and secret `QASE_TESTOPS_API_TOKEN` are both set; otherwise `off`. Optional variables `ENV`, `TENANT`.
+Qase mode in `ui`: `QASE_MODE=testops` only when repo variable `QASE_MODE` is `testops` **and** variable `QASE_TESTOPS_PROJECT` and secret `QASE_TESTOPS_API_TOKEN` are both set; otherwise `off`.
 
 ## Qase and Claude Code tooling
 
