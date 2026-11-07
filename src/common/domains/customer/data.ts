@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import { Customer } from './interfaces';
+import { Customer, InvalidCredentialsRow } from './interfaces';
 
 // ParaBank is a shared demo, so every generated username must be unique
 export const generateCustomer = (overrides: Partial<Customer> = {}): Customer => ({
@@ -17,3 +17,19 @@ export const generateCustomer = (overrides: Partial<Customer> = {}): Customer =>
   password: faker.internet.password({ length: 12 }),
   ...overrides,
 });
+
+// Invalid credentials built from a registered customer (docs/parabank-api.md: login is case-sensitive)
+export const INVALID_CREDENTIALS: InvalidCredentialsRow[] = [
+  {
+    name: 'wrong password',
+    credentials: (customer) => ({ ...customer, password: generateCustomer().password }),
+  },
+  {
+    name: 'unknown user',
+    credentials: (customer) => ({ ...customer, username: generateCustomer().username }),
+  },
+  {
+    name: 'username in another case',
+    credentials: (customer) => ({ ...customer, username: customer.username.toUpperCase() }),
+  },
+];

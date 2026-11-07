@@ -19,5 +19,12 @@ export interface Customer {
   password: string;
 }
 
+// Row of the API test "Invalid login is rejected": `name` is the title suffix and the Qase
+// parameter "Credentials"; `credentials` turns a registered customer into credentials to reject
+export interface InvalidCredentialsRow {
+  name: string;
+  credentials: (customer: Customer) => Customer;
+}
+
 // Parsed body of a REST response (not Playwright's APIResponse), inferred from its Zod schema
 export type CustomerResponse = z.infer<typeof CustomerResponseSchema>;
