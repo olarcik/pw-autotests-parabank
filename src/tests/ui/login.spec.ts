@@ -8,6 +8,7 @@ test.describe('Login', () => {
   });
 
   test('Login form is displayed on Home page', async ({ mainPage }) => {
+    qase.id(15);
     qase.fields({ severity: 'minor', priority: 'low', layer: 'e2e' });
 
     await test.step('Check the login form', async () => {
@@ -30,6 +31,7 @@ test.describe('Login', () => {
   });
 
   test('Password field masks input', async ({ mainPage }) => {
+    qase.id(16);
     qase.fields({ severity: 'minor', priority: 'low', layer: 'e2e' });
     const customer = generateCustomer();
 
@@ -51,6 +53,7 @@ test.describe('Login', () => {
     accountsOverviewPage,
     registeredCustomer,
   }) => {
+    qase.id(17);
     qase.fields({ severity: 'critical', priority: 'high', layer: 'e2e' });
     const customer = registeredCustomer.data;
 
@@ -77,6 +80,7 @@ test.describe('Login', () => {
     accountsOverviewPage,
     registeredCustomer,
   }) => {
+    qase.id(18);
     qase.fields({ severity: 'minor', priority: 'low', layer: 'e2e' });
     const customer = registeredCustomer.data;
 
@@ -103,6 +107,7 @@ test.describe('Login', () => {
     { row: 'only password filled', customer: generateCustomer({ username: '' }) },
   ]) {
     test(`Empty fields show error: ${row}`, async ({ page, mainPage }) => {
+      qase.id(19);
       qase.fields({ severity: 'major', priority: 'high', layer: 'e2e' });
       // The results of this case differ in Qase by this parameter
       qase.parameters({ Fields: row });
@@ -119,6 +124,7 @@ test.describe('Login', () => {
   }
 
   test('Wrong password shows error', async ({ page, mainPage, registeredCustomer }) => {
+    qase.id(20);
     qase.fields({ severity: 'major', priority: 'high', layer: 'e2e' });
     const customer = { ...registeredCustomer.data, password: generateCustomer().password };
 

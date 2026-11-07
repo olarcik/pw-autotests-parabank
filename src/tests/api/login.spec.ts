@@ -29,6 +29,7 @@ test.describe('Login', () => {
     },
   ]) {
     test(`Invalid login is rejected: ${row}`, async ({ customerService, registeredCustomer }) => {
+      qase.id(14);
       qase.fields({ severity: 'major', priority: 'high', layer: 'api' });
       // The results of this case differ in Qase by this parameter
       qase.parameters({ Credentials: row });
