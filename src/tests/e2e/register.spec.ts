@@ -1,10 +1,12 @@
 import { test, expect, qase } from '@src/tests/baseTest';
 import { generateCustomer } from '@src/common/domains/customer/data';
 import {
+  ACCOUNT_NUMBER_PATTERN,
   ACCOUNT_SERVICES,
   CASE_MISMATCHED_PASSWORDS,
   NEW_CUSTOMER_BALANCE,
   PAGE_TITLES,
+  PAGE_URLS,
   REGISTER_ERRORS,
 } from '@src/common/data/testData';
 
@@ -19,7 +21,7 @@ test.describe('Registration', () => {
 
     await test.step('Click the "Register" link in the left panel of the Home page', async () => {
       await mainPage.openRegisterPage();
-      await expect(page).toHaveURL(/register\.htm/);
+      await expect(page).toHaveURL(PAGE_URLS.register);
       await expect(page).toHaveTitle(PAGE_TITLES.register);
     });
 
@@ -182,7 +184,7 @@ test.describe('Registration', () => {
     await test.step('Check the account balance', async () => {
       // Cells: account number, Balance, Available Amount
       await expect(accountsOverviewPage.accountRows.getByRole('cell')).toHaveText([
-        /^\d+$/,
+        ACCOUNT_NUMBER_PATTERN,
         NEW_CUSTOMER_BALANCE,
         NEW_CUSTOMER_BALANCE,
       ]);

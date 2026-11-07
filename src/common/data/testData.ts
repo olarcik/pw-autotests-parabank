@@ -1,4 +1,4 @@
-// Shared static test values: expected texts, amounts and fixed inputs
+// Shared static test values: expected texts, URLs, amounts and fixed inputs
 
 // Browser tab titles of ParaBank pages
 export const PAGE_TITLES = {
@@ -8,6 +8,18 @@ export const PAGE_TITLES = {
   accountsOverview: 'ParaBank | Accounts Overview',
   // Server error page, e.g. login.htm after a failed login
   error: 'ParaBank | Error',
+};
+
+// Expected page addresses, matched against the full URL
+export const PAGE_URLS = {
+  register: /register\.htm/,
+};
+
+// Expected href of links on the Home page. On the first visit the server appends
+// ";jsessionid=..." to links, so only the start is matched
+export const LINK_HREFS = {
+  register: /^register\.htm/,
+  forgotLoginInfo: /^lookup\.htm/,
 };
 
 // Register form validation messages; required-field errors are keyed by RegisterPage.requiredFields names
@@ -48,6 +60,9 @@ export const ACCOUNT_SERVICES = [
   'Request Loan',
   'Log Out',
 ];
+
+// Account number as shown in the Accounts Overview table: digits only
+export const ACCOUNT_NUMBER_PATTERN = /^\d+$/;
 
 // Balance of the default account every new customer gets on registration
 export const NEW_CUSTOMER_BALANCE = '$515.50';
