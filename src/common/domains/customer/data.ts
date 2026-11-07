@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import { Customer, InvalidCredentialsRow } from './interfaces';
+import { Customer, EmptyLoginFieldsRow, InvalidCredentialsRow } from './interfaces';
 
 // ParaBank is a shared demo, so every generated username must be unique
 export const generateCustomer = (overrides: Partial<Customer> = {}): Customer => ({
@@ -32,4 +32,11 @@ export const INVALID_CREDENTIALS: InvalidCredentialsRow[] = [
     name: 'username in another case',
     credentials: (customer) => ({ ...customer, username: customer.username.toUpperCase() }),
   },
+];
+
+// Login form inputs with one or both fields empty
+export const EMPTY_LOGIN_FIELDS: EmptyLoginFieldsRow[] = [
+  { name: 'both empty', customer: () => generateCustomer({ username: '', password: '' }) },
+  { name: 'only username filled', customer: () => generateCustomer({ password: '' }) },
+  { name: 'only password filled', customer: () => generateCustomer({ username: '' }) },
 ];

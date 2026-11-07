@@ -1,6 +1,6 @@
 import { test, expect, qase } from '@src/tests/baseTest';
-import { generateCustomer } from '@src/common/domains/customer/data';
-import { ACCOUNT_SERVICES, LOGIN_ERRORS, PAGE_TITLES } from '@src/common/data/testData';
+import { EMPTY_LOGIN_FIELDS, generateCustomer } from '@src/common/domains/customer/data';
+import { ACCOUNT_SERVICES, LINK_HREFS, LOGIN_ERRORS, PAGE_TITLES } from '@src/common/data/testData';
 
 test.describe('Login', () => {
   test.beforeEach(async ({ mainPage }) => {
@@ -22,11 +22,13 @@ test.describe('Login', () => {
     });
 
     await test.step('Check the links "Register" and "Forgot login info?"', async () => {
-      // On the first visit the server appends ";jsessionid=..." to the links, so only the start is checked
       await expect(mainPage.registerLink).toBeVisible();
-      await expect(mainPage.registerLink).toHaveAttribute('href', /^register\.htm/);
+      await expect(mainPage.registerLink).toHaveAttribute('href', LINK_HREFS.register);
       await expect(mainPage.forgotLoginInfoLink).toBeVisible();
-      await expect(mainPage.forgotLoginInfoLink).toHaveAttribute('href', /^lookup\.htm/);
+      await expect(mainPage.forgotLoginInfoLink).toHaveAttribute(
+        'href',
+        LINK_HREFS.forgotLoginInfo,
+      );
     });
   });
 
@@ -101,19 +103,15 @@ test.describe('Login', () => {
   });
 
   // One test per combination of empty fields; the server rejects the form before looking up the user
-  for (const { row, customer } of [
-    { row: 'both empty', customer: generateCustomer({ username: '', password: '' }) },
-    { row: 'only username filled', customer: generateCustomer({ password: '' }) },
-    { row: 'only password filled', customer: generateCustomer({ username: '' }) },
-  ]) {
-    test(`Empty fields show error: ${row}`, async ({ page, mainPage }) => {
+  for (const { name, customer } of EMPTY_LOGIN_FIELDS) {
+    test(`Empty fields show error: ${name}`, async ({ page, mainPage }) => {
       qase.id(19);
       qase.fields({ severity: 'major', priority: 'high', layer: 'e2e' });
       // The results of this case differ in Qase by this parameter
-      qase.parameters({ Fields: row });
+      qase.parameters({ Fields: name });
 
-      await test.step(`Leave fields empty (${row}) and click "Log In"`, async () => {
-        await mainPage.login(customer);
+      await test.step(`Leave fields empty (${name}) and click "Log In"`, async () => {
+        await mainPage.login(customer());
         await expect(page).toHaveTitle(PAGE_TITLES.error);
         await expect(mainPage.errorHeading).toBeVisible();
         await expect(mainPage.errorMessage).toHaveText(LOGIN_ERRORS.empty);
