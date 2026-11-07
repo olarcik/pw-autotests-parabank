@@ -28,7 +28,7 @@ The browser is for **discovery and debugging only**. Every result ends up as cod
 ## Write a spec from a scenario
 
 1. Walk through the flow in the browser step by step, snapshotting after each step to confirm the expected result.
-2. Turn it into `src/tests/ui/<feature>.spec.ts`: import `test, expect, qase` from `@src/tests/baseTest`, use page-object fixtures, one `test.step` per scenario step, web-first assertions (`toBeVisible`, `toHaveText`, `toHaveURL`), no `waitForTimeout`.
+2. Turn it into `src/tests/e2e/<feature>.spec.ts`: import `test, expect, qase` from `@src/tests/baseTest`, use page-object fixtures, one `test.step` per scenario step, web-first assertions (`toBeVisible`, `toHaveText`, `toHaveURL`), no `waitForTimeout`.
 3. One scenario on several data sets: a loop that registers a separate test per row with a unique title, not a loop inside one test (see “Parameterized tests” in `CLAUDE.md`).
 4. If the scenario has a Qase case, add `qase.id(<id>)` as the first line (see `qase-skill` — "automate case N" uses both).
 5. Data: the local ParaBank database lives in the container and is shared by tests running in parallel — register a fresh customer with generated data (`generateCustomer` in `src/common/domains/customer/data.ts`) rather than relying on existing accounts. Never hard-code credentials.

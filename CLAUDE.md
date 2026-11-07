@@ -9,7 +9,7 @@ The framework is built incrementally: folders exist up front (kept with `.gitkee
 npm test                                   # playwright test: all projects — 3 browsers + api (needs a running app)
 npx playwright test --project=chromium     # single browser
 npx playwright test --project=api          # API tests only (no browser)
-npx playwright test src/tests/ui           # single folder
+npx playwright test src/tests/e2e          # single folder
 npx playwright test -g "login"             # by test title
 npm run lint                               # ESLint (typescript-eslint + eslint-plugin-playwright + eslint-config-prettier)
 npm run typecheck                          # tsc --noEmit
@@ -52,7 +52,7 @@ src/
 └── tests/
     ├── baseTest.ts     # the only entry for specs: `test` from fixtures/base.ts, `expect` extended with schemaMatchers, `qase`
     ├── api/            # API tests, Playwright project `api` (no browser)
-    └── ui/             # UI tests, projects chromium / firefox / webkit
+    └── e2e/            # E2E tests, projects chromium / firefox / webkit
 env/                    # <ENV>.env per environment (local, demo): BASE_URL, no secrets, committed
 files/uploads/          # input files for upload tests
 files/downloads/        # download output (git-ignored)
@@ -65,12 +65,12 @@ LICENSE                 # MIT
 ### Tests
 
 - Import `test` and `expect` from `src/tests/baseTest.ts` (`@src/tests/baseTest`), **not** from `@playwright/test`.
-- Fixtures with logic live in `src/fixtures/`, one file per fixture group (`apiFixture.ts`, `customerFixtures.ts`), exported as functions with explicit parameter types; `src/fixtures/base.ts` connects them; `src/tests/baseTest.ts` gives specs `test`, `expect` and `qase`. `src/tests/` holds only the `api/` and `ui/` specs and `baseTest.ts`. Fixture files never import `base.ts` or `baseTest.ts` (circular import); they use `expect` from `@playwright/test`.
-- File names: `<feature>.spec.ts` (kebab-case), placed in `src/tests/ui/` (UI) or `src/tests/api/` (API).
+- Fixtures with logic live in `src/fixtures/`, one file per fixture group (`apiFixture.ts`, `customerFixtures.ts`), exported as functions with explicit parameter types; `src/fixtures/base.ts` connects them; `src/tests/baseTest.ts` gives specs `test`, `expect` and `qase`. `src/tests/` holds only the `api/` and `e2e/` specs and `baseTest.ts`. Fixture files never import `base.ts` or `baseTest.ts` (circular import); they use `expect` from `@playwright/test`.
+- File names: `<feature>.spec.ts` (kebab-case), placed in `src/tests/e2e/` (E2E) or `src/tests/api/` (API).
 - Use page-object and service fixtures (`async ({ mainPage, customerService }) => ...`) instead of `new XPage(page)` or `new XService(api)` inside tests.
 - Use web-first assertions (`await expect(locator).toBeVisible()`); no `waitForTimeout` or hard sleeps.
 - Tests must be independent and runnable in parallel (`fullyParallel: true`). Create the data a test needs; don't rely on another test's state.
-- Parameterized tests (one scenario on several data sets): loop over the data and register a separate test per row with a unique title (as in Playwright test-parameterize), not a loop inside one test; hooks stay outside the loop. Tests of one Qase case get the same `qase.id()` and different `qase.parameters()`. Example: the required-field test in `src/tests/ui/register.spec.ts`.
+- Parameterized tests (one scenario on several data sets): loop over the data and register a separate test per row with a unique title (as in Playwright test-parameterize), not a loop inside one test; hooks stay outside the loop. Tests of one Qase case get the same `qase.id()` and different `qase.parameters()`. Example: the required-field test in `src/tests/e2e/register.spec.ts`.
 - Use `test.step()` for multi-step flows to keep reports readable (steps are also sent to Qase).
 - Tests navigate as a user: start on the Home page (`test.beforeEach` with `mainPage.open()`) and reach the target page through visible steps (e.g. `mainPage.openRegisterPage()`) inside the test. A direct `goto` to an inner page is allowed only when the test checks exactly that (e.g. a direct link).
 - Link each test to its Qase case with `qase.id(<id>)` as the first line of the test body (`qase` is exported from `baseTest.ts`). The ID in `qase.id()` always equals the case ID in Qase. Don't use the `qase(id, 'title')` title wrapper — it fails the `playwright/valid-title` lint rule. Optional metadata: `qase.fields({ severity, priority, layer })`, `qase.parameters()` (e.g. the data row of a parameterized test), `qase.suite()`, `qase.attach()`, `qase.ignore()`.
@@ -94,7 +94,7 @@ LICENSE                 # MIT
   - Services import `test` from `@playwright/test`, not from `baseTest.ts` or `src/fixtures/` (they import services, so that would be a circular import).
   - Register every new service by adding it to `servicesMap` in `src/fixtures/base.ts` — fixtures and their types are generated from it.
 - Step names in tests describe meaning — a user or system action (`Register a new customer`, `Log in as the new customer`) — without the method or endpoint; HTTP details are shown by the handler's nested steps.
-- Test data can be prepared through API fixtures: `registeredCustomer` (`src/fixtures/customerFixtures.ts`) registers a new customer through the form, logs in via REST to get the id and gives `{ data, response }`: `registeredCustomer.data` is the test data (`Customer`), `registeredCustomer.response.id` comes from the REST response (`CustomerResponse`). It asserts registration and login itself. It is lazy (only tests that ask for it register one) and has no retries inside. Registration tests don't use it — they check registration themselves. In UI tests note that it uses the `request` context, not the browser: the page is not logged in.
+- Test data can be prepared through API fixtures: `registeredCustomer` (`src/fixtures/customerFixtures.ts`) registers a new customer through the form, logs in via REST to get the id and gives `{ data, response }`: `registeredCustomer.data` is the test data (`Customer`), `registeredCustomer.response.id` comes from the REST response (`CustomerResponse`). It asserts registration and login itself. It is lazy (only tests that ask for it register one) and has no retries inside. Registration tests don't use it — they check registration themselves. In E2E tests note that it uses the `request` context, not the browser: the page is not logged in.
 - Check JSON bodies with `expect(body).toMatchSchema(<Zod schema>)` (from `baseTest.ts`), then compare values; amounts are JSON numbers (`515.5`, not `'515.50'`).
 
 ### Page objects
@@ -166,7 +166,7 @@ Qase mode in `ui`: `QASE_MODE=testops` only when repo variable `QASE_MODE` is `t
 
 - Reporter `playwright-qase-reporter` is configured in `playwright.config.ts`, alongside `list` and `html`. `QASE_MODE=report` writes a local JSON report to `build/qase-report/`.
 - The reporter adds the Playwright project name as the result parameter `Project` (`chromium`, `firefox`, `webkit` or `api`).
-- Qase project `PB` suites: `E2E` (UI tests, `src/tests/ui/`) and `API` (`src/tests/api/`), each with feature suites inside (e.g. `E2E / Registration`, `API / Registration`). The case field **Layer** matches: `e2e` or `api`, also set in `qase.fields({ layer })`.
+- Qase project `PB` suites: `E2E` (browser tests, `src/tests/e2e/`) and `API` (`src/tests/api/`), each with feature suites inside (e.g. `E2E / Registration`, `API / Registration`). The case field **Layer** matches: `e2e` or `api`, also set in `qase.fields({ layer })`.
 - MCP servers are defined in `.mcp.json`:
   - `qase` (`@qase/mcp-server`, reuses `QASE_TESTOPS_API_TOKEN` from `.env`) with the `qase-skill` skill (`.claude/skills/qase-skill/SKILL.md`) — manage cases, runs and defects.
   - `playwright` (`@playwright/mcp`, headed Chrome, output in `.playwright-mcp/`) with the `playwright-skill` skill (`.claude/skills/playwright-skill/SKILL.md`) — explore pages, build locators, debug. Finished work is always plain specs verified with `npx playwright test`.
