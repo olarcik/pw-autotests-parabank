@@ -22,11 +22,20 @@ not only read from the specification.
 
 - REST base = `${BASE_URL}/services/bank` (the spec's `servers.url` is the relative `/parabank/services/bank`).
 - **Always send `Accept: application/json`.** Without it (or with `Accept: */*`) every endpoint answers
-  `application/xml`; `Accept: text/html` gives `406`.
+  `application/xml`; `Accept: text/html` gives `406`. A wrong HTTP method (POST on a GET path or the
+  other way round) gives `405`.
 - **No authentication.** There are no tokens or sessions in the REST API: any client can read any
   customer by id. The only "login" is `GET /login/{username}/{password}`, which takes the credentials in
   the URL path and returns the customer. URL-encode both parts; the server logs them in plain text.
 - Registration is not part of the REST API — it goes through the web form (see [section 5](#5-registration)).
+- **The web UI uses a proxy, not this base.** The pages call the same API at
+  `${BASE_URL}/services_proxy/bank/...` with the browser session cookie. Without a logged-in session the
+  proxy answers `401 {"message":"User login required","status":401}`. It checks only that someone is
+  logged in, not that the data belongs to them: a logged-in customer can read another customer's
+  accounts and transactions through it (and in the UI, e.g. `activity.htm?id=<other account>`). Its
+  errors are JSON bodies such as
+  `{"title":"Bad Request","status":400,"detail":"Required parameter 'amount' is not present.",...}`
+  where the direct REST call answers `500` or `404`.
 
 ## 3. Specification
 
@@ -66,6 +75,13 @@ There is **no endpoint that creates a customer**.
 | GET    | `/customers/{customerId}/accounts` | Customer's accounts                                               | stage 1 |
 | GET    | `/accounts/{accountId}`            | Account by id                                                     | stage 1 |
 | POST   | `/createAccount`                   | Open an account (`customerId`, `newAccountType`, `fromAccountId`) | later   |
+
+`newAccountType` is a number: `0` `CHECKING`, `1` `SAVINGS`, `2` `LOAN` (the UI offers only the first
+two). Names (`CHECKING`) give `404`, other numbers (`5`, `-1`) give `500`, a missing value means `0`.
+Opening always moves `100.00` from `fromAccountId` into the new account: a `Debit` "Funds Transfer
+Sent" on the source and a `Credit` "Funds Transfer Received" on the new account. The `minimumBalance`
+setting is also `100.00`, but the balance of the source is not checked: a source with `15.50` ends at
+`-84.50`. The response reports `"balance":0`, while `GET /accounts/{id}` then shows `100.00`.
 
 ### Transfers and payments
 
@@ -153,9 +169,11 @@ Messages for empty required fields are the same as in the UI (see `REGISTER_ERRO
 
 ## 6. Data models
 
-Real responses with `Accept: application/json`. Ids are JSON numbers (`int32`), amounts are JSON numbers
-written with two decimals. Model names are from the spec; in code the bodies are `<Name>Response`
-(`CustomerResponse`, `AccountResponse`), while `Customer` is the test data.
+Real responses with `Accept: application/json`. Ids are JSON numbers (`int32`). Amounts in `Account` and
+`Transaction` bodies are JSON numbers written with two decimals; other responses do not always follow
+this: `POST /createAccount` returns `"balance":0`, `POST /billpay` returns `"amount":25`. Model names
+are from the spec; in code the bodies are `<Name>Response` (`CustomerResponse`, `AccountResponse`),
+while `Customer` is the test data.
 
 `Customer` (from `GET /login/...` and `GET /customers/{id}`; never contains username or password):
 
@@ -202,8 +220,24 @@ customer `john` (`id` 12212), read only; `type` is `Credit` or `Debit`:
 }
 ```
 
-`date` is **epoch milliseconds** in JSON (`2025-12-11T00:00:00.000Z` in XML). A new customer's
-default account has **no transactions**: the starting `515.50` is not recorded as one.
+`date` is **epoch milliseconds** of midnight UTC in JSON (`2025-12-11T00:00:00.000Z` in XML). A new
+customer's default account has **no transactions**: the starting `515.50` is not recorded as one. New
+transactions get the server's current date (midnight UTC; the container runs in UTC).
+
+### Demo data
+
+The demo data (`insert.sql` in the image, loaded when the database is initialized) is not fixed in time:
+
+- Transaction dates are relative to the day of initialization. The two checks of account `12345`
+  (`12145`, `12256`) are on December 11 and 12 of the **previous** year
+  (`CONCAT(YEAR(CURRENT_DATE - '1' YEAR),'-12-11')`), so the example above changes every year. All other
+  demo transactions are `CURRENT_DATE` minus 3, 8, 10, 11 or 15 days.
+- Besides `john/demo` (`12212`) there is a second customer `parasoft/demo` (`12323`, one `CHECKING`
+  account `13455` with `2014.76`). Both are shared and read-only for tests.
+- Settings: `initialBalance=515.50`, `minimumBalance=100.00`, `loanProvider=ws`, `loanProcessor=funds`,
+  `loanProcessorThreshold=20`.
+- New customers, accounts and transactions get ids from global sequences that grow in steps of `111`
+  (first new customer `12434`, account `13566`, transaction `14476`).
 
 ## 7. Dangerous methods
 
@@ -219,33 +253,64 @@ browsers, the healthcheck) and some cannot be undone.
 - Any mutating call on data that is not ours: the demo customer `john/demo` (`12212`) and its accounts
   are shared and read-only for tests. Mutating calls ("later" in [section 4](#4-endpoint-map)) are only
   made on customers the test registered itself.
+- The server does not check that an account belongs to the customer: `POST /createAccount`,
+  `POST /transfer` and `POST /requestLoan` take money from **any** existing account id
+  (`fromAccountId`), and a loan account goes to whatever `customerId` is sent. Because ids are
+  sequential, a wrong id changes another customer's data (another test's customer, or `john`) instead of
+  failing. Always use ids returned for the test's own customer.
+- Amounts with more than two decimals (`1.005`) are accepted and **permanently break** the account (see
+  [section 8](#8-known-issues)).
 
 ## 8. Known issues
 
 Spec vs. reality and other surprises:
 
-| Topic                              | Spec                                    | Reality                                                                                                                            |
-| ---------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Default format                     | JSON or XML                             | XML unless `Accept: application/json`; `Accept: text/html` → `406`                                                                 |
-| Not found / invalid login          | only `default` response                 | `400 text/plain` with a message, not `404` JSON (table below)                                                                      |
-| Invalid path parameter             | `integer/int32`                         | Non-numeric id or id above int32 → `404` with an empty body                                                                        |
-| `Transaction.date`                 | `string`, `date-time`                   | JSON: number (epoch ms); XML: ISO string                                                                                           |
-| Date path params                   | plain `string`                          | `MM-dd-yyyy`. Other formats are parsed leniently: `2025-12-11` → `200 []`, no error. Only garbage → `400` "Unable to parse date …" |
-| `.../transactions/amount/{amount}` | summary "Create transactions by amount" | A read-only filter                                                                                                                 |
-| Customer creation                  | —                                       | No REST method; form only ([section 5](#5-registration))                                                                           |
+| Topic                              | Spec                                    | Reality                                                                                                                                                                                                                                                                     |
+| ---------------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Default format                     | JSON or XML                             | XML unless `Accept: application/json`; `Accept: text/html` → `406`                                                                                                                                                                                                          |
+| Not found / invalid login          | only `default` response                 | `400 text/plain` with a message, not `404` JSON (table below)                                                                                                                                                                                                               |
+| Invalid path parameter             | `integer/int32`                         | Non-numeric id or id above int32 → `404` with an empty body. `0`, negative ids and ids up to `2147483647` that don't exist → `400` "Could not find …"                                                                                                                       |
+| Non-numeric query value            | `integer` / `number`                    | `amount=abc`, `customerId=abc` → `404` with an empty body                                                                                                                                                                                                                   |
+| Login path                         | plain `string`                          | Case-sensitive. Trailing spaces in username or password are accepted (`/login/john%20/demo` → `200`), leading ones are not. `%2F` in a part → `400` HTML page from Tomcat                                                                                                   |
+| `Transaction.date`                 | `string`, `date-time`                   | JSON: number (epoch ms); XML: ISO string                                                                                                                                                                                                                                    |
+| Date path params                   | plain `string`                          | `MM-dd-yyyy`, parsed leniently: other formats give no error (`2025-12-11` → `200 []`), out-of-range parts roll over (`09-55-2026` = `10-25-2026`), trailing text is ignored (`10-25-2026x`). `/` in the date → `404`. Only unparsable text → `400` "Unable to parse date …" |
+| `.../month/{month}/type/{type}`    | plain `string`                          | `month`: English month name in any case, or a prefix of it (`Oct`, `N`); numbers and unknown values are ignored (all months). `type`: exactly `All`, `Credit` or `Debit`; any other value or case (`credit`) → `500` HTML error page                                        |
+| Filters on an unknown account      | —                                       | All four filters → `200 []` (the plain `/accounts/{id}/transactions` → `400`)                                                                                                                                                                                               |
+| `.../transactions/amount/{amount}` | summary "Create transactions by amount" | A read-only filter                                                                                                                                                                                                                                                          |
+| `newAccountType`                   | `integer`                               | `0` / `1` / `2` only ([section 4](#accounts))                                                                                                                                                                                                                               |
+| Mutating responses                 | `string`                                | `deposit`, `withdraw`, `transfer`, `customers/update`: `Content-Type: application/json`, but the body is plain text (`Successfully deposited $100 to account #13677`), not valid JSON                                                                                       |
+| Customer creation                  | —                                       | No REST method; form only ([section 5](#5-registration))                                                                                                                                                                                                                    |
 
 Error responses (all `text/plain;charset=UTF-8`):
 
-| Request                                                     | Status | Body                                                 |
-| ----------------------------------------------------------- | ------ | ---------------------------------------------------- |
-| `GET /login/{user}/{wrongPassword}`                         | 400    | `Invalid username and/or password`                   |
-| `GET /login/{unknownUser}/{any}`                            | 400    | `Invalid username and/or password`                   |
-| `GET /customers/999999999`                                  | 400    | `Could not find customer #999999999`                 |
-| `GET /customers/999999999/accounts`                         | 400    | `Could not find customer #999999999`                 |
-| `GET /accounts/999999999`                                   | 400    | `Could not find account #999999999`                  |
-| `GET /accounts/999999999/transactions`                      | 400    | `Could not find transactions for account #999999999` |
-| `GET /transactions/999999999`                               | 400    | `Could not find transaction #999999999`              |
-| `GET /customers/abc`, `/customers/9999999999`, unknown path | 404    | empty                                                |
+| Request                                                     | Status | Body                                                                                  |
+| ----------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------- |
+| `GET /login/{user}/{wrongPassword}`                         | 400    | `Invalid username and/or password`                                                    |
+| `GET /login/{unknownUser}/{any}`                            | 400    | `Invalid username and/or password`                                                    |
+| `GET /customers/999999999` (also `0`, `-1`)                 | 400    | `Could not find customer #999999999`                                                  |
+| `GET /customers/999999999/accounts`                         | 400    | `Could not find customer #999999999`                                                  |
+| `GET /accounts/999999999`                                   | 400    | `Could not find account #999999999`                                                   |
+| `GET /accounts/999999999/transactions`                      | 400    | `Could not find transactions for account #999999999`                                  |
+| `GET /transactions/999999999`                               | 400    | `Could not find transaction #999999999`                                               |
+| `GET /customers/abc`, `/customers/9999999999`, unknown path | 404    | empty                                                                                 |
+| `POST /createAccount` with an unknown customer or account   | 400    | `Could not create new account for customer {customerId} from account {fromAccountId}` |
+| `POST /deposit`, `/withdraw` with an unknown account        | 400    | `Could not find account number {accountId}`                                           |
+| `POST /transfer` with an unknown account                    | 400    | `Could not find account number {fromAccountId} and/or {toAccountId}`                  |
+| `POST /requestLoan` with an unknown `fromAccountId`         | 400    | `Could not find account #{fromAccountId}`                                             |
+
+A missing parameter counts as `0` in these messages (`Could not find account number 0`).
+
+Errors that are not `400 text/plain`:
+
+| Request                                                                                    | Status | Body                                                                                       |
+| ------------------------------------------------------------------------------------------ | ------ | ------------------------------------------------------------------------------------------ |
+| `deposit`, `withdraw`, `transfer`, `billpay` without `amount` (or `amount=`)               | 500    | HTML error page `ParaBank \| Error`, "An internal error has occurred and has been logged." |
+| `POST /billpay` with an unknown or missing `accountId`, or without a body                  | 500    | HTML error page                                                                            |
+| `POST /billpay` with a body that is not valid `Payee` JSON (unknown field, `"abc"` number) | 500    | empty                                                                                      |
+| `POST /customers/update/{id}` with missing parameters (nothing is changed)                 | 500    | HTML error page                                                                            |
+| `POST /customers/update/{id}` with a username another customer has                         | 500    | HTML error page; the server logs a unique constraint violation on `CUSTOMER`               |
+| `POST /createAccount` with `newAccountType` other than `0`–`2`                             | 500    | HTML error page                                                                            |
+| `POST /requestLoan` without `amount` or `downPayment`                                      | 400    | `text/plain` with a Java exception message (`Cannot read field "intCompact" …`)            |
 
 Other:
 
@@ -255,6 +320,12 @@ Other:
   happens about one time in three), so API registration is treated the same way as UI: only `retries`
   in `playwright.config.ts`, no retries in services, fixtures or tests.
 - Registration without the preceding `GET register.htm` fails with `500` (section 5).
+- **Amounts with more than two decimals break the account for good.** `POST /deposit` or
+  `POST /transfer` with `amount=1.005` answers `200` ("Successfully deposited $1.005 …") and stores the
+  value; after that `GET /accounts/{id}`, `/accounts/{id}/transactions` and
+  `/customers/{customerId}/accounts` answer `500` (server log: `ArithmeticException: Rounding necessary`
+  in `JdbcAccountDao$AccountMapper`), and the customer's pages in the UI show the error page. Only
+  `/customers/{customerId}` still works. A transfer breaks both accounts.
 - The server log prints usernames and passwords of REST logins in plain text.
 
 ## 9. Coverage plan
