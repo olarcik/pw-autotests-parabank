@@ -6,6 +6,8 @@ export const PAGE_TITLES = {
   register: 'ParaBank | Register for Free Online Account Access',
   customerCreated: 'ParaBank | Customer Created',
   accountsOverview: 'ParaBank | Accounts Overview',
+  // Server error page, e.g. login.htm after a failed login
+  error: 'ParaBank | Error',
 };
 
 // Register form validation messages; required-field errors are keyed by RegisterPage.requiredFields names
@@ -23,6 +25,16 @@ export const REGISTER_ERRORS = {
     Confirm: 'Password confirmation is required.',
   } as Record<string, string>,
   passwordsMismatch: 'Passwords did not match.',
+};
+
+// Login error messages
+export const LOGIN_ERRORS = {
+  // UI error page when the username, the password or both are empty
+  empty: 'Please enter a username and password.',
+  // UI error page for a wrong username or password
+  invalid: 'The username and password could not be verified.',
+  // REST GET /login/{username}/{password} body (400 text/plain) for any invalid credentials
+  api: 'Invalid username and/or password',
 };
 
 // Account Services menu in the left panel of a logged-in customer, in display order

@@ -10,10 +10,13 @@ export class MainPage {
   readonly locationsItem: Locator;
   readonly adminPage: Locator;
   readonly registerLink: Locator;
+  readonly forgotLoginInfoLink: Locator;
   readonly loginHeading: Locator;
   readonly loginUsernameInput: Locator;
   readonly loginPasswordInput: Locator;
   readonly loginButton: Locator;
+  readonly errorHeading: Locator;
+  readonly errorMessage: Locator;
   readonly customerWelcome: Locator;
   readonly accountServicesHeading: Locator;
   readonly accountServicesLinks: Locator;
@@ -28,11 +31,16 @@ export class MainPage {
     this.locationsItem = page.getByRole('link', { name: 'Locations', exact: true });
     this.adminPage = page.getByRole('link', { name: 'Admin Page', exact: true });
     this.registerLink = page.getByRole('link', { name: 'Register', exact: true });
+    this.forgotLoginInfoLink = page.getByRole('link', { name: 'Forgot login info?', exact: true });
     this.loginHeading = page.getByRole('heading', { name: 'Customer Login', exact: true });
     // Login labels are plain paragraphs not linked to the inputs, so getByLabel can't find them
     this.loginUsernameInput = page.locator('#loginPanel input[name="username"]');
     this.loginPasswordInput = page.locator('#loginPanel input[name="password"]');
     this.loginButton = page.getByRole('button', { name: 'Log In', exact: true });
+    // Error page of a failed login (login.htm): the login form stays in the left panel
+    this.errorHeading = page.getByRole('heading', { name: 'Error!', exact: true });
+    // The message is a plain <p class="error"> with no role and a varying text, so CSS is the only hook
+    this.errorMessage = page.locator('#rightPanel p.error');
     // Left panel of a logged-in customer: "Welcome <First> <Last>" and the Account Services menu.
     // It is on every page after login; tests reach it through MainPage (CLAUDE.md, Page objects)
     this.customerWelcome = page.locator('#leftPanel').getByText(/^Welcome /);
@@ -61,9 +69,17 @@ export class MainPage {
     await this.logOutLink.click();
   }
 
-  async login(customer: Customer) {
+  async fillLoginForm(customer: Customer) {
     await this.loginUsernameInput.fill(customer.username);
     await this.loginPasswordInput.fill(customer.password);
+  }
+
+  async login(customer: Customer) {
+    await this.fillLoginForm(customer);
     await this.loginButton.click();
+  }
+
+  async submitLoginByEnter() {
+    await this.loginPasswordInput.press('Enter');
   }
 }
