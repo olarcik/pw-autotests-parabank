@@ -25,6 +25,12 @@ export const REGISTER_ERRORS = {
   passwordsMismatch: 'Passwords did not match.',
 };
 
+// Login error messages
+export const LOGIN_ERRORS = {
+  // REST GET /login/{username}/{password} body (400 text/plain) for any invalid credentials
+  api: 'Invalid username and/or password',
+};
+
 // Account Services menu in the left panel of a logged-in customer, in display order
 export const ACCOUNT_SERVICES = [
   'Open New Account',
