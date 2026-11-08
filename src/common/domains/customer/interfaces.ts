@@ -33,5 +33,12 @@ export interface EmptyLoginFieldsRow {
   customer: () => Customer;
 }
 
+// Row of the API tests on GET /customers/{id} with an id that is not a customer's: `name` is the
+// title suffix; `id` is a number, or a string for an id that is not a number at all
+export interface CustomerIdRow {
+  name: string;
+  id: number | string;
+}
+
 // Parsed body of a REST response (not Playwright's APIResponse), inferred from its Zod schema
 export type CustomerResponse = z.infer<typeof CustomerResponseSchema>;

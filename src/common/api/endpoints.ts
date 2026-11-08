@@ -6,7 +6,8 @@ export const endpoints = {
   // Credentials go in the path, so both parts are URL-encoded
   login: (username: string, password: string) =>
     `/login/${encodeURIComponent(username)}/${encodeURIComponent(password)}`,
-  customer: (customerId: number) => `/customers/${customerId}`,
+  // A string id is only for invalid-format checks (e.g. "abc")
+  customer: (customerId: number | string) => `/customers/${customerId}`,
   customerAccounts: (customerId: number) => `/customers/${customerId}/accounts`,
   account: (accountId: number) => `/accounts/${accountId}`,
   accountTransactions: (accountId: number) => `/accounts/${accountId}/transactions`,

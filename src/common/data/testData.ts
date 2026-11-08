@@ -75,3 +75,8 @@ export const CASE_MISMATCHED_PASSWORDS = {
   password: 'Secret123',
   confirmPassword: 'secret123',
 };
+
+// REST error bodies (400 text/plain) of the customer endpoints
+export const CUSTOMER_ERRORS = {
+  notFound: (customerId: number | string) => `Could not find customer #${customerId}`,
+};

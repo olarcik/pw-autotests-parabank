@@ -49,4 +49,8 @@ export class CustomerService {
   login(customer: Customer) {
     return this.api.path(endpoints.login(customer.username, customer.password)).get();
   }
+
+  getCustomer(customerId: number | string) {
+    return this.api.path(endpoints.customer(customerId)).get();
+  }
 }
