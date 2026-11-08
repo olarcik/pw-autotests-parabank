@@ -1,4 +1,4 @@
-import { test, expect } from '@src/tests/baseTest';
+import { test, expect, qase } from '@src/tests/baseTest';
 import { generateCustomer } from '@src/common/domains/customer/data';
 import { PAGE_TITLES, UPDATE_PROFILE_ERRORS } from '@src/common/data/testData';
 
@@ -16,6 +16,9 @@ test.describe('Customer profile', () => {
     updateProfilePage,
     registeredCustomer,
   }) => {
+    qase.id(28);
+    qase.fields({ severity: 'critical', priority: 'high', layer: 'e2e' });
+
     const newData = generateCustomer();
 
     await test.step('Log in as a registered customer', async () => {
@@ -53,6 +56,9 @@ test.describe('Customer profile', () => {
     updateProfilePage,
     registeredCustomer,
   }) => {
+    qase.id(29);
+    qase.fields({ severity: 'normal', priority: 'medium', layer: 'e2e' });
+
     await test.step('Log in as a registered customer', async () => {
       await mainPage.login(registeredCustomer.data);
       await expect(page).toHaveTitle(PAGE_TITLES.accountsOverview);
