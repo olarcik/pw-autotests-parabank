@@ -30,8 +30,9 @@ On first use in a session call `qase_project_context` (`code`) to learn suites, 
 ## Create cases for specs without IDs
 
 1. Find tests with no `qase.id(` call under `src/tests/`.
-2. For each, propose a case: title = test title, steps = its `test.step` titles, suite = by layer, `E2E / <feature>` for E2E or `API / <feature>` for API (ask if none fits), `automation` = automated.
-3. After confirmation create with `qase_case_upsert` (one) or `qase_case_bulk_create` (many), then insert `qase.id(<new id>);` as the first line of each test.
+2. For each scenario, propose one case (not one per row of a parameterized test): title = test title without the `: <row>` suffix, steps = its `test.step` titles with expected results, `automation` = automated. Use cases 8, 13, 14 and 21 as the model for format: API steps carry the request (method, path, inputs) in the step data; the description of a parameterized case starts with "For each step: …" and it has one step per row.
+3. Suite: `API / <Feature>` or `E2E / <Feature>`, named by the suite rule in `CLAUDE.md` (ask if none fits); a new suite gets a one-line description.
+4. After confirmation create with `qase_case_upsert` (one) or `qase_case_bulk_create` (many), then insert `qase.id(<new id>);` as the first line of each test; the rows of a parameterized test share the id and send their row with `qase.parameters({ <Name>: <row name> })`.
 
 ## Audit links
 
