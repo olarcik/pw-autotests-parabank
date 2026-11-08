@@ -1,4 +1,4 @@
-import { test, expect } from '@src/tests/baseTest';
+import { test, expect, qase } from '@src/tests/baseTest';
 import {
   INVALID_CUSTOMER_IDS,
   MISSING_UPDATE_PARAMS,
@@ -11,6 +11,9 @@ import { CUSTOMER_ERRORS, CUSTOMER_UPDATE_SUCCESS, PAGE_TITLES } from '@src/comm
 
 test.describe('Customer profile', () => {
   test('Get customer details by id', async ({ customerService, registeredCustomer }) => {
+    qase.id(22);
+    qase.fields({ severity: 'critical', priority: 'high', layer: 'api' });
+
     await test.step("Get the customer's details", async () => {
       const response = await customerService.getCustomer(registeredCustomer.response.id);
       expect(response.status()).toBe(200);
@@ -27,6 +30,11 @@ test.describe('Customer profile', () => {
   // One test per kind of id that belongs to no customer
   for (const { name, id } of UNKNOWN_CUSTOMER_IDS) {
     test(`Unknown customer id is rejected: ${name}`, async ({ customerService }) => {
+      qase.id(23);
+      qase.fields({ severity: 'major', priority: 'medium', layer: 'api' });
+      // The results of this case differ in Qase by this parameter
+      qase.parameters({ Id: name });
+
       await test.step(`Get the details of an unknown customer id: ${name}`, async () => {
         const response = await customerService.getCustomer(id);
         expect(response.status()).toBe(400);
@@ -39,6 +47,11 @@ test.describe('Customer profile', () => {
   // One test per kind of id that is not an int32
   for (const { name, id } of INVALID_CUSTOMER_IDS) {
     test(`Invalid customer id format returns 404: ${name}`, async ({ customerService }) => {
+      qase.id(24);
+      qase.fields({ severity: 'minor', priority: 'low', layer: 'api' });
+      // The results of this case differ in Qase by this parameter
+      qase.parameters({ Id: name });
+
       await test.step(`Get the details of an invalid customer id: ${name}`, async () => {
         const response = await customerService.getCustomer(id);
         expect(response.status()).toBe(404);
@@ -50,6 +63,9 @@ test.describe('Customer profile', () => {
   // Every update goes only to the test's own customer (registeredCustomer.response.id):
   // the server does not check whose id it is (docs/parabank-api.md, section 7)
   test('Update customer contact info', async ({ customerService, registeredCustomer }) => {
+    qase.id(25);
+    qase.fields({ severity: 'critical', priority: 'high', layer: 'api' });
+
     const { id } = registeredCustomer.response;
     const { username, password } = registeredCustomer.data;
     const newData = generateCustomer({ username, password });
@@ -77,6 +93,11 @@ test.describe('Customer profile', () => {
       customerService,
       registeredCustomer,
     }) => {
+      qase.id(26);
+      qase.fields({ severity: 'major', priority: 'medium', layer: 'api' });
+      // The results of this case differ in Qase by this parameter
+      qase.parameters({ Parameter: missingParam });
+
       const { id } = registeredCustomer.response;
       const { username, password } = registeredCustomer.data;
 
@@ -104,6 +125,9 @@ test.describe('Customer profile', () => {
     customerService,
     registeredCustomer,
   }) => {
+    qase.id(27);
+    qase.fields({ severity: 'major', priority: 'medium', layer: 'api' });
+
     const { id } = registeredCustomer.response;
     const anotherCustomer = generateCustomer();
 
