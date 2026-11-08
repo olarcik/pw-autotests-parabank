@@ -33,5 +33,25 @@ export interface EmptyLoginFieldsRow {
   customer: () => Customer;
 }
 
+// Row of the API tests on GET /customers/{id} with an id that is not a customer's: `name` is the
+// title suffix; `id` is a number, or a string for an id that is not a number at all
+export interface CustomerIdRow {
+  name: string;
+  id: number | string;
+}
+
+// Query params of POST /customers/update/{id}; all of them are required (a missing one gives 500)
+export type CustomerUpdateParam =
+  | 'firstName'
+  | 'lastName'
+  | 'street'
+  | 'city'
+  | 'state'
+  | 'zipCode'
+  | 'phoneNumber'
+  | 'ssn'
+  | 'username'
+  | 'password';
+
 // Parsed body of a REST response (not Playwright's APIResponse), inferred from its Zod schema
 export type CustomerResponse = z.infer<typeof CustomerResponseSchema>;

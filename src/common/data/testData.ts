@@ -6,6 +6,8 @@ export const PAGE_TITLES = {
   register: 'ParaBank | Register for Free Online Account Access',
   customerCreated: 'ParaBank | Customer Created',
   accountsOverview: 'ParaBank | Accounts Overview',
+  // Update Contact Info; the title stays the same after a successful update
+  updateProfile: 'ParaBank | Update Profile',
   // Server error page, e.g. login.htm after a failed login
   error: 'ParaBank | Error',
 };
@@ -74,4 +76,24 @@ export const NEW_CUSTOMER_ACCOUNT = { type: 'CHECKING', balance: 515.5 } as cons
 export const CASE_MISMATCHED_PASSWORDS = {
   password: 'Secret123',
   confirmPassword: 'secret123',
+};
+
+// REST error bodies (400 text/plain) of the customer endpoints
+export const CUSTOMER_ERRORS = {
+  notFound: (customerId: number | string) => `Could not find customer #${customerId}`,
+};
+
+// Body of POST /customers/update/{id} on success: plain text, although the content type is JSON
+export const CUSTOMER_UPDATE_SUCCESS = 'Successfully updated customer profile';
+
+// Update Contact Info validation messages (client-side), keyed by UpdateProfilePage.requiredFields names
+export const UPDATE_PROFILE_ERRORS = {
+  required: {
+    'First Name': 'First name is required.',
+    'Last Name': 'Last name is required.',
+    Address: 'Address is required.',
+    City: 'City is required.',
+    State: 'State is required.',
+    'Zip Code': 'Zip Code is required.',
+  } as Record<string, string>,
 };

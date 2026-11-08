@@ -21,6 +21,7 @@ export class MainPage {
   readonly accountServicesHeading: Locator;
   readonly accountServicesLinks: Locator;
   readonly accountsOverviewLink: Locator;
+  readonly updateContactInfoLink: Locator;
   readonly logOutLink: Locator;
 
   constructor(page: Page) {
@@ -50,6 +51,10 @@ export class MainPage {
     });
     this.accountServicesLinks = page.locator('#leftPanel').getByRole('link');
     this.accountsOverviewLink = page.getByRole('link', { name: 'Accounts Overview', exact: true });
+    this.updateContactInfoLink = page.getByRole('link', {
+      name: 'Update Contact Info',
+      exact: true,
+    });
     this.logOutLink = page.getByRole('link', { name: 'Log Out', exact: true });
   }
 
@@ -63,6 +68,10 @@ export class MainPage {
 
   async openAccountsOverview() {
     await this.accountsOverviewLink.click();
+  }
+
+  async openUpdateContactInfo() {
+    await this.updateContactInfoLink.click();
   }
 
   async logout() {
