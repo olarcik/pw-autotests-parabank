@@ -8,6 +8,9 @@ test.describe('Login', () => {
     customerService,
     registeredCustomer,
   }) => {
+    qase.id(21);
+    qase.fields({ severity: 'critical', priority: 'high', layer: 'api' });
+
     await test.step('Log in as the registered customer', async () => {
       const response = await customerService.login(registeredCustomer.data);
       expect(response.status()).toBe(200);
