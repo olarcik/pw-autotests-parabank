@@ -1,17 +1,18 @@
 # ParaBank REST API
 
-Research notes on the ParaBank REST API of the local Docker image, made before writing API tests.
+Research notes on the ParaBank REST API of the local Docker image, kept up to date as tests are added.
 Everything below was checked against the running container (image pinned in `docker-compose.yml`),
 not only read from the specification.
 
 ## 1. Purpose and how to update
 
 - Single reference for API tests, the HTTP layer in `src/common/api/` and services in `src/services/`:
-  which endpoints exist, how they really behave, and which ones tests must never call.
+  which endpoints exist, how they really behave, and which ones tests must never call; also the UI
+  pages the E2E tests use ([section 9](#9-ui-pages-used-by-the-tests)).
 - Update it when the ParaBank image digest in `docker-compose.yml` changes:
   1. `npm run docker:up`.
   2. Re-download the spec (see [section 3](#3-specification)) and check `git diff docs/parabank-openapi.yaml`.
-  3. Re-check the requests in sections 5–8 that the diff touches, then update this file.
+  3. Re-check the requests in sections 5–9 that the diff touches, then update this file.
 
 ## 2. Environment
 
@@ -54,25 +55,35 @@ not only read from the specification.
 
 ## 4. Endpoint map
 
-Paths are relative to the REST base. "Tests" column: **stage 1** — planned for the first API tests,
-**later** — changes data of our own test users, planned after stage 1, **never** — see [section 7](#7-dangerous-methods).
+Paths are relative to the REST base. "Tests" column: **covered** — has tests in `src/tests/api/`,
+**stage 1** — planned for the first API tests, **later** — changes data of our own test users, planned
+after stage 1, **never** — see [section 7](#7-dangerous-methods).
 
 ### Customers
 
 | Method | Path                                | Purpose                                            | Tests   |
 | ------ | ----------------------------------- | -------------------------------------------------- | ------- |
-| GET    | `/login/{username}/{password}`      | Find a customer by credentials, returns `Customer` | stage 1 |
-| GET    | `/customers/{customerId}`           | Customer details                                   | stage 1 |
-| POST   | `/customers/update/{customerId}`    | Update customer data (all fields as query params)  | later   |
+| GET    | `/login/{username}/{password}`      | Find a customer by credentials, returns `Customer` | covered |
+| GET    | `/customers/{customerId}`           | Customer details                                   | covered |
+| POST   | `/customers/update/{customerId}`    | Update customer data (all fields as query params)  | covered |
 | GET    | `/customers/{customerId}/positions` | Customer's stock positions                         | later   |
 
 There is **no endpoint that creates a customer**.
+
+`POST /customers/update/{customerId}` takes 10 query params: `firstName`, `lastName`, `street`, `city`,
+`state`, `zipCode`, `phoneNumber`, `ssn`, `username`, `password`. With all of them it answers `200`,
+`Content-Type: application/json`, and the plain-text body `Successfully updated customer profile`.
+Leaving out **any one** of them, `phoneNumber` too (although it is optional on the register form), gives
+the `500` error page and changes nothing ([section 8](#8-known-issues)). The customer's own username and
+password can be sent again (`200`); a new username and password are applied: the old login answers
+`400`, the new one `200` with the same id. `GET /customers/{customerId}` returns the new values right
+after the update. The password travels in the URL query, in this call and in the UI's proxy request.
 
 ### Accounts
 
 | Method | Path                               | Purpose                                                           | Tests   |
 | ------ | ---------------------------------- | ----------------------------------------------------------------- | ------- |
-| GET    | `/customers/{customerId}/accounts` | Customer's accounts                                               | stage 1 |
+| GET    | `/customers/{customerId}/accounts` | Customer's accounts                                               | covered |
 | GET    | `/accounts/{accountId}`            | Account by id                                                     | stage 1 |
 | POST   | `/createAccount`                   | Open an account (`customerId`, `newAccountType`, `fromAccountId`) | later   |
 
@@ -151,6 +162,9 @@ customer can only be created through the web form `register.htm`. The flow below
 3. The new customer is logged in on that session. Get its id through REST:
    `GET /login/{username}/{password}` → `Customer.id`.
 4. `GET /customers/{id}/accounts` → exactly one `CHECKING` account with balance `515.50`.
+
+A second registration in the same session (`GET` + `POST` again) also works: "Customer Created", a new
+id, and the new customer can log in.
 
 ### Result is in the HTML, not in the status code
 
@@ -251,7 +265,8 @@ browsers, the healthcheck) and some cannot be undone.
   page) for every user of the app.
 - `POST /startupJmsListener`, `POST /shutdownJmsListener` — switch the JMS listener.
 - Any mutating call on data that is not ours: the demo customer `john/demo` (`12212`) and its accounts
-  are shared and read-only for tests. Mutating calls ("later" in [section 4](#4-endpoint-map)) are only
+  are shared and read-only for tests. Mutating calls (every `POST` in [section 4](#4-endpoint-map)
+  except the ones above) are only
   made on customers the test registered itself.
 - The server does not check that an account belongs to the customer: `POST /createAccount`,
   `POST /transfer` and `POST /requestLoan` take money from **any** existing account id
@@ -302,15 +317,15 @@ A missing parameter counts as `0` in these messages (`Could not find account num
 
 Errors that are not `400 text/plain`:
 
-| Request                                                                                    | Status | Body                                                                                       |
-| ------------------------------------------------------------------------------------------ | ------ | ------------------------------------------------------------------------------------------ |
-| `deposit`, `withdraw`, `transfer`, `billpay` without `amount` (or `amount=`)               | 500    | HTML error page `ParaBank \| Error`, "An internal error has occurred and has been logged." |
-| `POST /billpay` with an unknown or missing `accountId`, or without a body                  | 500    | HTML error page                                                                            |
-| `POST /billpay` with a body that is not valid `Payee` JSON (unknown field, `"abc"` number) | 500    | empty                                                                                      |
-| `POST /customers/update/{id}` with missing parameters (nothing is changed)                 | 500    | HTML error page                                                                            |
-| `POST /customers/update/{id}` with a username another customer has                         | 500    | HTML error page; the server logs a unique constraint violation on `CUSTOMER`               |
-| `POST /createAccount` with `newAccountType` other than `0`–`2`                             | 500    | HTML error page                                                                            |
-| `POST /requestLoan` without `amount` or `downPayment`                                      | 400    | `text/plain` with a Java exception message (`Cannot read field "intCompact" …`)            |
+| Request                                                                                                         | Status | Body                                                                                       |
+| --------------------------------------------------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------ |
+| `deposit`, `withdraw`, `transfer`, `billpay` without `amount` (or `amount=`)                                    | 500    | HTML error page `ParaBank \| Error`, "An internal error has occurred and has been logged." |
+| `POST /billpay` with an unknown or missing `accountId`, or without a body                                       | 500    | HTML error page                                                                            |
+| `POST /billpay` with a body that is not valid `Payee` JSON (unknown field, `"abc"` number)                      | 500    | empty                                                                                      |
+| `POST /customers/update/{id}` with any one of the 10 parameters missing (`phoneNumber` too; nothing is changed) | 500    | HTML error page                                                                            |
+| `POST /customers/update/{id}` with a username another customer has                                              | 500    | HTML error page; the server logs a unique constraint violation on `CUSTOMER`               |
+| `POST /createAccount` with `newAccountType` other than `0`–`2`                                                  | 500    | HTML error page                                                                            |
+| `POST /requestLoan` without `amount` or `downPayment`                                                           | 400    | `text/plain` with a Java exception message (`Cannot read field "intCompact" …`)            |
 
 Other:
 
@@ -327,23 +342,51 @@ Other:
   in `JdbcAccountDao$AccountMapper`), and the customer's pages in the UI show the error page. Only
   `/customers/{customerId}` still works. A transfer breaks both accounts.
 - The server log prints usernames and passwords of REST logins in plain text.
+- `POST /customers/update/{id}` sends the password in the URL query (REST and the UI proxy), so it is
+  visible in browser requests and Playwright traces.
 
-## 9. Coverage plan
+## 9. UI pages used by the tests
 
-Stage 1 (read-only API, each test registers its own customer through the form):
+Pages of the web UI that the E2E tests use or that were explored for them, beyond Register and Login.
+Their form labels are not linked to the inputs, so page objects locate the inputs by id.
 
-- Registration: `CustomerService.registerCustomer()` (`GET` + `POST register.htm`) with `generateCustomer()`, success detected by the title;
-  then `GET /login/{username}/{password}` for the customer id.
-- `GET /customers/{id}`, `/customers/{id}/accounts`, `/accounts/{id}`, `/accounts/{id}/transactions`:
-  status, `application/json`, model shape (section 6), values match the registered customer
-  (`515.50` `CHECKING` account, empty transaction list).
-- Error cases from section 8 (wrong password, unknown ids, invalid id format).
+### Update Contact Info (`updateprofile.htm`)
 
-Later:
+Covered by `src/tests/e2e/customerProfile.spec.ts`.
 
-- Mutating endpoints on the test's own customer: `createAccount`, `transfer`, `deposit`, `withdraw`,
-  `billpay`, `customers/update`, then transaction filters (dates, month/type, amount) on the data
-  the test created.
-- Loans and positions (not explored yet; tests take the app settings as they are and never change them).
+| Topic          | Behaviour                                                                                                              |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Title          | `ParaBank \| Update Profile`, also after a successful update                                                           |
+| Fields, button | First Name, Last Name, Address, City, State, Zip Code, Phone # (no SSN, username or password); button "Update Profile" |
+| Prefilled      | With the customer's current data, loaded by `GET services_proxy/bank/customers/{id}` after the page opens              |
+| Success        | h1 "Profile Updated" and "Your updated address and phone number have been added to the system."                        |
+| Required       | Client-side messages for the 6 required fields (no request is sent); an empty Phone # is accepted                      |
+| Left panel     | The welcome text keeps the old name until the next login                                                               |
+
+### Customer Lookup (`lookup.htm`, "Forgot login info?")
+
+Explored, not covered by tests yet.
+
+| Topic          | Behaviour                                                                               |
+| -------------- | --------------------------------------------------------------------------------------- |
+| Title          | `ParaBank \| Customer Lookup`                                                           |
+| Fields, button | First Name, Last Name, Address, City, State, Zip Code, SSN; button "Find My Login Info" |
+| Required       | Server-side messages (`POST lookup.htm` → `200`, one `*.errors` span per empty field)   |
+| Unknown data   | `ParaBank \| Error`, "The customer information provided could not be found."            |
+| Success        | Shows the username and password in plain text and logs the customer in                  |
+
+## 10. Coverage plan
+
+Done:
+
+- Registration: API and E2E.
+- Login: API and E2E.
+- Customer details and update: API and E2E (`customerProfile.spec.ts`).
+
+Next:
+
+- API: account reads, transactions with the 4 filters, open account, deposit and withdraw, transfer,
+  bill pay, loan request — mutating calls only on the test's own customer.
+- E2E: the same features in the UI, and Customer Lookup.
 
 Never: the service methods in section 7.
