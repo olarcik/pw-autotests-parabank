@@ -66,7 +66,7 @@ LICENSE                 # MIT
 
 - Import `test` and `expect` from `src/tests/baseTest.ts` (`@src/tests/baseTest`), **not** from `@playwright/test`.
 - Fixtures with logic live in `src/fixtures/`, one file per fixture group (`apiFixture.ts`, `customerFixtures.ts`), exported as functions with explicit parameter types; `src/fixtures/base.ts` connects them; `src/tests/baseTest.ts` gives specs `test`, `expect` and `qase`. `src/tests/` holds only the `api/` and `e2e/` specs and `baseTest.ts`. Fixture files never import `base.ts` or `baseTest.ts` (circular import); they use `expect` from `@playwright/test`.
-- File names: `<feature>.spec.ts` (kebab-case), placed in `src/tests/e2e/` (E2E) or `src/tests/api/` (API).
+- File names: `<feature>.spec.ts` (camelCase, e.g. `customerProfile.spec.ts`, like all other files), placed in `src/tests/e2e/` (E2E) or `src/tests/api/` (API).
 - Use page-object and service fixtures (`async ({ mainPage, customerService }) => ...`) instead of `new XPage(page)` or `new XService(api)` inside tests.
 - Use web-first assertions (`await expect(locator).toBeVisible()`); no `waitForTimeout` or hard sleeps.
 - Tests must be independent and runnable in parallel (`fullyParallel: true`). Create the data a test needs; don't rely on another test's state.

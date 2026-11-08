@@ -4,7 +4,7 @@ import { PAGE_TITLES, UPDATE_PROFILE_ERRORS } from '@src/common/data/testData';
 
 // registeredCustomer registers through the request context, so each test logs in through the form.
 // The welcome text keeps the old name until the next login, so it is not checked after an update
-test.describe('Update Contact Info', () => {
+test.describe('Customer profile', () => {
   test.beforeEach(async ({ mainPage }) => {
     await mainPage.open();
   });
