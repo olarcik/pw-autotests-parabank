@@ -3,6 +3,7 @@ import {
   Customer,
   CustomerIdRow,
   CustomerResponse,
+  CustomerUpdateParam,
   EmptyLoginFieldsRow,
   InvalidCredentialsRow,
 } from './interfaces';
@@ -69,4 +70,13 @@ export const UNKNOWN_CUSTOMER_IDS: CustomerIdRow[] = [
 export const INVALID_CUSTOMER_IDS: CustomerIdRow[] = [
   { name: 'not a number', id: 'abc' },
   { name: 'above int32', id: 9999999999 },
+];
+
+// Params left out of POST /customers/update/{id}, one per test; phoneNumber is optional on the
+// register form but still required here
+export const MISSING_UPDATE_PARAMS: CustomerUpdateParam[] = [
+  'firstName',
+  'zipCode',
+  'phoneNumber',
+  'password',
 ];

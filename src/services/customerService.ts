@@ -1,7 +1,7 @@
 import { test } from '@playwright/test';
 import { endpoints } from '@src/common/api/endpoints';
 import { RequestHandler } from '@src/common/api/requestHandler';
-import { Customer } from '@src/common/domains/customer/interfaces';
+import { Customer, CustomerUpdateParam } from '@src/common/domains/customer/interfaces';
 
 // Registration has no REST method: it goes through the register.htm form (docs/parabank-api.md, section 5).
 // Methods only send requests and return the responses; tests assert them. They never retry: the false
@@ -52,5 +52,26 @@ export class CustomerService {
 
   getCustomer(customerId: number | string) {
     return this.api.path(endpoints.customer(customerId)).get();
+  }
+
+  // All fields go as query params, the password too (masked in the report by RequestHandler).
+  // `missingParam` leaves one param out, for the required-parameter checks
+  updateCustomer(customerId: number, customer: Customer, missingParam?: CustomerUpdateParam) {
+    const params: Record<CustomerUpdateParam, string> = {
+      firstName: customer.firstName,
+      lastName: customer.lastName,
+      street: customer.address.street,
+      city: customer.address.city,
+      state: customer.address.state,
+      zipCode: customer.address.zipCode,
+      phoneNumber: customer.phoneNumber,
+      ssn: customer.ssn,
+      username: customer.username,
+      password: customer.password,
+    };
+    const sent = Object.fromEntries(
+      Object.entries(params).filter(([name]) => name !== missingParam),
+    );
+    return this.api.path(endpoints.updateCustomer(customerId)).params(sent).post();
   }
 }

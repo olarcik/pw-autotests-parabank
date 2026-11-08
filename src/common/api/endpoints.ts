@@ -8,6 +8,7 @@ export const endpoints = {
     `/login/${encodeURIComponent(username)}/${encodeURIComponent(password)}`,
   // A string id is only for invalid-format checks (e.g. "abc")
   customer: (customerId: number | string) => `/customers/${customerId}`,
+  updateCustomer: (customerId: number) => `/customers/update/${customerId}`,
   customerAccounts: (customerId: number) => `/customers/${customerId}/accounts`,
   account: (accountId: number) => `/accounts/${accountId}`,
   accountTransactions: (accountId: number) => `/accounts/${accountId}/transactions`,

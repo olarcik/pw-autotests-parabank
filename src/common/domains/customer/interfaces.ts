@@ -40,5 +40,18 @@ export interface CustomerIdRow {
   id: number | string;
 }
 
+// Query params of POST /customers/update/{id}; all of them are required (a missing one gives 500)
+export type CustomerUpdateParam =
+  | 'firstName'
+  | 'lastName'
+  | 'street'
+  | 'city'
+  | 'state'
+  | 'zipCode'
+  | 'phoneNumber'
+  | 'ssn'
+  | 'username'
+  | 'password';
+
 // Parsed body of a REST response (not Playwright's APIResponse), inferred from its Zod schema
 export type CustomerResponse = z.infer<typeof CustomerResponseSchema>;

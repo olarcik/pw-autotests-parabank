@@ -80,3 +80,6 @@ export const CASE_MISMATCHED_PASSWORDS = {
 export const CUSTOMER_ERRORS = {
   notFound: (customerId: number | string) => `Could not find customer #${customerId}`,
 };
+
+// Body of POST /customers/update/{id} on success: plain text, although the content type is JSON
+export const CUSTOMER_UPDATE_SUCCESS = 'Successfully updated customer profile';
