@@ -44,7 +44,7 @@ src/
 │   │   └── external-service/  # external services (placeholder, kept with .gitkeep)
 │   └── domains/<domain>/   # only data about objects: interfaces.ts, data.ts, schemas.ts
 ├── services/           # Service Objects, one file per ParaBank resource: <resource>Service.ts
-├── pages/              # <feature>Page.ts: mainPage (header, login, left panel), registerPage, accountsOverviewPage
+├── pages/              # <feature>Page.ts: mainPage (header, login, left panel), registerPage, accountsOverviewPage, updateProfilePage
 ├── fixtures/
 │   ├── base.ts         # pagesMap, servicesMap: page-object and service fixtures generated from them; connects the fixtures below; exports `test`
 │   ├── apiFixture.ts   # `api` fixture: RequestHandler on `request`, attaches the exchange log of failed tests

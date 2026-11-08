@@ -3,6 +3,7 @@ import { RequestHandler } from '@src/common/api/requestHandler';
 import { AccountsOverviewPage } from '@src/pages/accountsOverviewPage';
 import { MainPage } from '@src/pages/mainPage';
 import { RegisterPage } from '@src/pages/registerPage';
+import { UpdateProfilePage } from '@src/pages/updateProfilePage';
 import { AccountService } from '@src/services/accountService';
 import { CustomerService } from '@src/services/customerService';
 import { apiFixture } from './apiFixture';
@@ -12,6 +13,7 @@ const pagesMap = {
   mainPage: MainPage,
   registerPage: RegisterPage,
   accountsOverviewPage: AccountsOverviewPage,
+  updateProfilePage: UpdateProfilePage,
   // add more page mappings here as needed
 };
 
