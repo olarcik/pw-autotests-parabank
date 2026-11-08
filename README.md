@@ -2,6 +2,17 @@
 
 [![Playwright Tests](https://github.com/olarcik/pw-autotests-parabank/actions/workflows/playwright-tests.yml/badge.svg?branch=main)](https://github.com/olarcik/pw-autotests-parabank/actions/workflows/playwright-tests.yml)
 
+UI and API test automation for [ParaBank](https://parabank.parasoft.com/) with Playwright + TypeScript:
+runs against a local ParaBank in Docker, in GitHub Actions, and reports to Qase TestOps.
+
+## What is covered
+
+- **API:** registration (the form over HTTP), login, customer details and update.
+- **E2E** (Chromium, Firefox, WebKit): registration, login, Update Contact Info.
+
+Real API behaviour and the coverage plan: [`docs/parabank-api.md`](docs/parabank-api.md).
+Project structure and conventions: [`CLAUDE.md`](CLAUDE.md).
+
 ## Running locally with Docker
 
 The tests can run against a local ParaBank started from the official
@@ -12,8 +23,9 @@ The tests can run against a local ParaBank started from the official
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or Docker Engine with the Compose plugin), running
 - Node.js LTS and dependencies installed: `npm ci`, then `npx playwright install`
 - Port `8080` free on the host, or another one set in `PARABANK_PORT` (see Troubleshooting)
-- A `.env` file created from the template: `cp .env.example .env` (PowerShell: `Copy-Item .env.example .env`).
-  It sets `ENV=local`, so the tests take `BASE_URL=http://localhost:8080/parabank` from `env/local.env`
+- Optional: a `.env` file created from the template: `cp .env.example .env` (PowerShell: `Copy-Item .env.example .env`),
+  needed only for Qase reporting or overrides such as `PARABANK_PORT`. Without it `ENV` defaults to `local`,
+  so the tests take `BASE_URL=http://localhost:8080/parabank` from `env/local.env`
   (`ENV=demo` uses the public demo from `env/demo.env`). Values from the shell or CI win over `.env`,
   and `.env` wins over `env/<ENV>.env`.
 
@@ -28,6 +40,8 @@ npm run test:host-docker  # docker:up + playwright test in one command
 ```
 
 Extra Playwright arguments go after `--`, e.g. `npm run test:host-docker -- --project=chromium`.
+
+Code checks: `npm run lint`, `npm run typecheck`, `npm run format:check`; the pre-commit hook runs all three.
 
 `docker:up` returns only when the container is `healthy`. A fresh ParaBank has an empty database and redirects
 every page to `initializeDB.htm`; the healthcheck in `docker-compose.yml` triggers that initialization once,
@@ -80,8 +94,8 @@ When upgrading Playwright, bump `PLAYWRIGHT_VERSION` in `Dockerfile` too; the im
 
 ## CI
 
-[`.github/workflows/playwright-tests.yml`](.github/workflows/playwright-tests.yml) runs on every pull request and push to `main`
-(and manually from the Actions tab), with two parallel jobs:
+[`.github/workflows/playwright-tests.yml`](.github/workflows/playwright-tests.yml) runs on pull requests to `main`, pushes to `main`
+and manually from the Actions tab, with two parallel jobs:
 
 - **Lint, type check and format check** — `npm ci`, `npm run lint`, `npm run typecheck`, `npm run format:check`.
 - **Tests** — `npm run docker:test`, the same command as locally (all projects, API tests included). The HTML report and
@@ -93,5 +107,6 @@ Optional configuration (Settings → Secrets and variables → Actions):
 
 - variables: `QASE_MODE` (`testops` to send results to Qase), `QASE_TESTOPS_PROJECT`;
   results go to Qase only when `QASE_MODE=testops`, `QASE_TESTOPS_PROJECT` and the `QASE_TESTOPS_API_TOKEN`
-  secret are all set — otherwise the job runs with `QASE_MODE=off`;
+  secret are all set — otherwise the job runs with `QASE_MODE=off`; the Qase run title
+  (`QASE_TESTOPS_RUN_TITLE`) is set by the workflow;
 - secret: `QASE_TESTOPS_API_TOKEN`.
