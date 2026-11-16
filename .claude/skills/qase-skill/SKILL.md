@@ -18,6 +18,7 @@ On first use in a session call `qase_project_context` (`code`) to learn suites, 
 - **Read freely, write carefully.** Lookups (`qase_get`, `qql_search`, `qase_project_context`) need no confirmation. Before any create/update, show what will be written (title, suite, steps) and get a yes. Before any delete, bulk create, or run completion, always confirm — these change shared team data.
 - Unsure of a tool's parameters? Call `qase_tool_help` instead of guessing. For QQL syntax call `qql_help` (`topic: "examples"`).
 - Never put the API token in code, commits, or chat.
+- The k6 scripts in `performance/` are not linked to Qase: no `qase.id`, no cases, no results. Layers stay `e2e` and `api`.
 
 ## Automate an existing case ("automate case 42")
 

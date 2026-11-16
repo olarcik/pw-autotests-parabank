@@ -9,6 +9,8 @@ Tools come from the `playwright` MCP server (`mcp__playwright__browser_*`). It o
 
 The browser is for **discovery and debugging only**. Every result ends up as code that follows `CLAUDE.md` and is verified with `npx playwright test` — never treat "it worked in the MCP browser" as done.
 
+Not for the k6 scripts in `performance/k6/`: they use neither the browser nor Playwright and are checked with `npm run typecheck` and `npm run docker:perf` (see "Performance tests (k6)" in `CLAUDE.md`).
+
 ## Basics
 
 - Read the page with `browser_snapshot` (accessibility tree — roles, names, refs). Use `browser_take_screenshot` only when layout/visuals matter.
