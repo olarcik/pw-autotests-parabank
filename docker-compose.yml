@@ -57,3 +57,30 @@ services:
     volumes:
       - ./playwright-report:/app/playwright-report
       - ./test-results:/app/test-results
+
+  # k6 performance tests (performance/k6). Started only with `--profile perf`, e.g. `npm run docker:perf`.
+  # Runs smoke.ts by default; another script: docker compose --profile perf run --rm k6 run <script>.ts
+  k6:
+    profiles: [perf]
+    # grafana/k6:2.3.0, pinned by digest so every run uses the same build (matches @types/k6 2.3.x).
+    # To update: docker pull grafana/k6:<version>, then copy the new digest from
+    # docker inspect --format "{{index .RepoDigests 0}}" grafana/k6:<version>
+    image: grafana/k6@sha256:2dd4756ec6e14e62778916e1eb850108e4b499304c02df56760fa0bdb0fba0b8
+    depends_on:
+      parabank:
+        condition: service_healthy
+    working_dir: /scripts
+    environment:
+      # Same as playwright-tests: the app by its service name on the container port
+      BASE_URL: http://parabank:8080/parabank
+      # Built-in web dashboard: no server (port -1, so k6 exits), only the exported HTML report.
+      # k6 writes the report only when the run gives at least 2 snapshots (one per period); a smoke
+      # run lasts ~1 s (see sleep in smoke.ts), so the default 10s period would skip it.
+      K6_WEB_DASHBOARD: 'true'
+      K6_WEB_DASHBOARD_PORT: '-1'
+      K6_WEB_DASHBOARD_PERIOD: 100ms
+      K6_WEB_DASHBOARD_EXPORT: /reports/k6-report.html
+    volumes:
+      - ./performance/k6:/scripts:ro
+      - ./performance/reports:/reports
+    command: ['run', 'smoke.ts']

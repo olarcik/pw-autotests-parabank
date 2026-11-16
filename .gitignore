@@ -11,3 +11,5 @@ node_modules/
 /build/qase-report/
 /.playwright-mcp/
 .claude/settings.local.json
+/performance/reports/*
+!/performance/reports/.gitkeep

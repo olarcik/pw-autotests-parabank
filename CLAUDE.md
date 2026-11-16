@@ -12,15 +12,16 @@ npx playwright test --project=api          # API tests only (no browser)
 npx playwright test src/tests/e2e          # single folder
 npx playwright test -g "login"             # by test title
 npm run lint                               # ESLint (typescript-eslint + eslint-plugin-playwright + eslint-config-prettier)
-npm run typecheck                          # tsc --noEmit
+npm run typecheck                          # tsc --noEmit + tsc -p performance/k6 (k6 scripts)
 npm run format                             # prettier --write .
 npm run format:check                       # prettier --check .
 npm run report                             # open last HTML report
 npm run docker:up                          # start ParaBank in Compose and wait until healthy
-npm run docker:down                        # stop and remove containers (incl. the tests profile)
+npm run docker:down                        # stop and remove containers (incl. the tests and perf profiles)
 npm run docker:logs                        # follow ParaBank logs
 npm run docker:test                        # build the test image, run the suite in Compose, clean up
 npm run test:host-docker                   # docker:up + playwright test on the host
+npm run docker:perf                        # k6 smoke in Compose (profile perf), HTML report in performance/reports/, clean up
 ```
 
 Before committing, run `npm run lint`, `npm run typecheck` and `npm run format:check`. The Husky pre-commit hook runs all three and blocks the commit on failure — never bypass it with `--no-verify`.
@@ -53,6 +54,12 @@ src/
     ├── baseTest.ts     # the only entry for specs: `test` from fixtures/base.ts, `expect` extended with schemaMatchers, `qase`
     ├── api/            # API tests, Playwright project `api` (no browser)
     └── e2e/            # E2E tests, projects chromium / firefox / webkit
+performance/
+├── k6/                 # k6 scripts (TypeScript run by k6 itself, own tsconfig.json with @types/k6)
+│   ├── smoke.ts        # options (1 VU, 1 iteration, thresholds), setup() registers a customer, default() runs the flow
+│   ├── scenarios/      # flow logic: customerFlow.ts (REST login)
+│   └── lib/            # config.ts (BASE_URL, JSON headers), data.ts (static data), customer.ts (registerCustomer)
+└── reports/            # k6 HTML report (git-ignored, kept with .gitkeep)
 env/                    # <ENV>.env per environment (local, demo): BASE_URL, no secrets, committed
 files/uploads/          # input files for upload tests
 files/downloads/        # download output (git-ignored)
@@ -112,7 +119,7 @@ LICENSE                 # MIT
 
 ### Data & configuration
 
-- Environment values are loaded by `src/common/data/setup.ts` itself (dotenv, never overwriting a set value), so the precedence is: shell / CI / Compose > `.env` > `env/<ENV>.env`. `playwright.config.ts` imports `setup.ts` first. Access values through `setup.ts`, never `process.env` directly in tests or pages.
+- Environment values are loaded by `src/common/data/setup.ts` itself (dotenv, never overwriting a set value), so the precedence is: shell / CI / Compose > `.env` > `env/<ENV>.env`. `playwright.config.ts` imports `setup.ts` first. Access values through `setup.ts`, never `process.env` directly in tests or pages. The one exception: k6 scripts read `__ENV.BASE_URL`, only in `performance/k6/lib/config.ts`.
 - `setup.ts` throws if `BASE_URL` is still unset; a missing `env/<ENV>.env` alone is not an error (the Docker image has no `env/`, Compose sets `BASE_URL`).
 - When adding a variable: a per-environment value (URL, etc.) goes into every `env/<ENV>.env`; a personal or secret value goes into `.env.example`. Then update `setup.ts`, and if the tests in Docker need it, the `playwright-tests` service `environment:` in `docker-compose.yml` and the `env:` block of the `ui` job in `.github/workflows/playwright-tests.yml`.
 - When adding an environment, add `env/<name>.env` with at least `BASE_URL`.
@@ -143,9 +150,20 @@ The ones in `.env.example` are `ENV` and the three `QASE_*` below; the others ar
 - TypeScript strict mode; no `any` unless justified.
 - ESLint rule `@typescript-eslint/no-floating-promises` is on: every async call (service and page methods, `expect`, `test.step`) is awaited.
 - Domain types live in `src/common/domains/<domain>/interfaces.ts` and are imported directly from there. Zod schemas of API responses live in `schemas.ts` next to it; their types are declared in `interfaces.ts` as `z.infer<typeof …Schema>`, not written by hand. `src/common/interfaces/` is only for types shared by several domains. Don't create re-export (barrel) files; the only allowed entry point is `src/tests/baseTest.ts`, because it adds the custom matchers to `expect` and exports `qase`.
-- Imports from another folder use the `@src/*` alias from `tsconfig.json` (`@src/common/data/setup`, `@src/pages/mainPage`); imports of a file in the same folder stay relative (`./schemas`). No `../` paths.
+- Imports from another folder use the `@src/*` alias from `tsconfig.json` (`@src/common/data/setup`, `@src/pages/mainPage`); imports of a file in the same folder stay relative (`./schemas`). No `../` paths (k6 scripts in `performance/` excepted: no alias there, see [Performance tests (k6)](#performance-tests-k6)).
 - Naming: REST response bodies are `<Name>Response`, their schemas `<Name>ResponseSchema`. The type `Customer` in the customer domain is the test data of a customer (with credentials), not a REST response.
 - Keep files LF line endings (enforced by `.gitattributes` and Prettier).
+
+## Performance tests (k6)
+
+- Run only in Docker (image `grafana/k6`, pinned by digest in `docker-compose.yml`, no k6 on the host) and only against the local ParaBank: `npm run docker:perf` runs `smoke.ts` in Compose profile `perf`, then `docker:down`. Another script: `docker compose --profile perf run --rm k6 run <script>.ts` (set `-e K6_WEB_DASHBOARD_EXPORT=/reports/<name>.html` to keep its report apart). Any k6 failure (threshold breach: k6 exit 99) gives exit code 1.
+- `lib/config.ts` throws if `BASE_URL` points to the public demo (`parabank.parasoft.com`). Never `ENV=demo`, never the dangerous methods (docs/parabank-api.md, section 7), never the demo customer `john`.
+- No imports from `src/`: k6 runs scripts in its own JavaScript runtime, not Node, so `src/` code (dotenv, faker, Playwright) cannot load there. k6 strips TypeScript types without checking them; imports are relative with the `.ts` extension (k6 requires it; there is no `@src` alias). `npm run typecheck` checks them with `performance/k6/tsconfig.json`; ESLint uses the same tsconfig, without Playwright rules.
+- Same data rules as the specs: static values in `lib/data.ts`, none in scenario files; usernames are unique (`perf_` prefix).
+- Every request has `tags: { name: '<METHOD> <path template>' }` without braces (`GET /login/:user/:pass`), so it can be used in threshold keys. Smoke thresholds: `http_req_failed` rate<0.01, `http_req_duration` p(95)<1000 overall and per request name, `checks` rate==1.
+- No retries or loops: a failed registration (also the known server flake) fails the run.
+- The HTML report is the built-in web dashboard export (`K6_WEB_DASHBOARD_*` in `docker-compose.yml`). k6 skips it when the run gives fewer than 2 snapshots, so the smoke has a 1 s think time (`sleep(1)`) and a 100 ms period.
+- Updating the pinned k6 image: `docker pull grafana/k6:<version>`, get the digest with `docker inspect --format "{{index .RepoDigests 0}}" grafana/k6:<version>`, replace the `image:` digest of the `k6` service, and bump `@types/k6` to the same minor version.
 
 ## Docker
 
@@ -153,6 +171,7 @@ See [`docker-compose.yml`](docker-compose.yml), [`Dockerfile`](Dockerfile) and R
 
 - `parabank` — the app, published on host port `${PARABANK_PORT:-8080}`; its healthcheck initializes the DB once, so `docker compose up --wait` returns a ready app.
 - `playwright-tests` — the test runner built from `Dockerfile`, in Compose profile `tests` (started only by `docker:test` / `--profile tests`). Inside the Compose network it uses `BASE_URL=http://parabank:8080/parabank`; `BASE_URL` from `.env` is ignored. Reports are mounted to `playwright-report/` and `test-results/`.
+- `k6` — performance tests, pinned `grafana/k6` image in Compose profile `perf` (see [Performance tests (k6)](#performance-tests-k6)); mounts `performance/k6` read-only and `performance/reports` for the report.
 - `PLAYWRIGHT_VERSION` in `Dockerfile` must equal `@playwright/test` in `package-lock.json`; bump both together (the image build fails on a mismatch).
 - Updating the pinned ParaBank image: `docker pull parasoft/parabank:latest`, get the digest with `docker inspect --format "{{index .RepoDigests 0}}" parasoft/parabank:latest`, and replace the `image:` digest in `docker-compose.yml`.
 
