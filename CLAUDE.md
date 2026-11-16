@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-End-to-end UI/API test automation for **ParaBank** using Playwright + TypeScript. By default tests run against a local ParaBank in Docker (image `parasoft/parabank`, pinned by digest in `docker-compose.yml`). The public demo is available with `ENV=demo`, but it is a shared third-party service: don’t run the full suite against it.
+End-to-end UI/API test automation for **ParaBank** using Playwright + TypeScript. By default tests run against a local ParaBank in Docker (image `parasoft/parabank`, pinned by digest in `docker-compose.yml`). The public demo is available with `ENV=demo`, but it is a shared third-party service: don’t run the full suite against it. A k6 performance smoke test lives in `performance/` (see [Performance tests (k6)](#performance-tests-k6)).
 The framework is built incrementally: folders exist up front (kept with `.gitkeep`), and code is added as tests are written.
 
 ## Commands
@@ -162,7 +162,7 @@ The ones in `.env.example` are `ENV` and the three `QASE_*` below; the others ar
 - Same data rules as the specs: static values in `lib/data.ts`, none in scenario files; usernames are unique (`perf_` prefix).
 - Every request has `tags: { name: '<METHOD> <path template>' }` without braces (`GET /login/:user/:pass`), so it can be used in threshold keys. Smoke thresholds: `http_req_failed` rate<0.01, `http_req_duration` p(95)<1000 overall and per request name, `checks` rate==1.
 - No retries or loops: a failed registration (also the known server flake) fails the run.
-- The HTML report is the built-in web dashboard export (`K6_WEB_DASHBOARD_*` in `docker-compose.yml`). k6 skips it when the run gives fewer than 2 snapshots, so the smoke has a 1 s think time (`sleep(1)`) and a 100 ms period.
+- The HTML report (`performance/reports/k6-report.html`) is the built-in web dashboard export (`K6_WEB_DASHBOARD_*` in `docker-compose.yml`). k6 skips it when the run gives fewer than 2 snapshots, so the smoke has a 1 s think time (`sleep(1)`) and a 100 ms period.
 - Updating the pinned k6 image: `docker pull grafana/k6:<version>`, get the digest with `docker inspect --format "{{index .RepoDigests 0}}" grafana/k6:<version>`, replace the `image:` digest of the `k6` service, and bump `@types/k6` to the same minor version.
 
 ## Docker
@@ -181,6 +181,7 @@ GitHub Actions — `.github/workflows/playwright-tests.yml` runs on push/PR to `
 
 - `checks`: `npm ci` → lint → typecheck → format:check.
 - `ui` (named “Tests”): `npm run docker:test` (same as locally; runs all projects, the `api` project included) → upload `playwright-report/` and `test-results/` as an artifact (always).
+- k6 performance tests are not run in CI yet.
 
 Qase mode in `ui`: `QASE_MODE=testops` only when repo variable `QASE_MODE` is `testops` **and** variable `QASE_TESTOPS_PROJECT` and secret `QASE_TESTOPS_API_TOKEN` are both set; otherwise `off`.
 

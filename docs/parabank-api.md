@@ -6,7 +6,7 @@ not only read from the specification.
 
 ## 1. Purpose and how to update
 
-- Single reference for API tests, the HTTP layer in `src/common/api/` and services in `src/services/`:
+- Single reference for API tests, the HTTP layer in `src/common/api/`, services in `src/services/` and the k6 scripts in `performance/k6/`:
   which endpoints exist, how they really behave, and which ones tests must never call; also the UI
   pages the E2E tests use ([section 9](#9-ui-pages-used-by-the-tests)).
 - Update it when the ParaBank image digest in `docker-compose.yml` changes:
