@@ -19,6 +19,13 @@ module.exports = defineConfig(
     },
   },
   {
+    // k6 scripts have their own tsconfig (k6 types, .ts import paths); no Playwright rules
+    files: ['performance/**/*.ts'],
+    languageOptions: {
+      parserOptions: { project: './performance/k6/tsconfig.json', tsconfigRootDir: __dirname },
+    },
+  },
+  {
     files: ['eslint.config.js'],
     languageOptions: {
       sourceType: 'commonjs',
