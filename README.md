@@ -4,11 +4,13 @@
 
 UI and API test automation for [ParaBank](https://parabank.parasoft.com/) with Playwright + TypeScript:
 runs against a local ParaBank in Docker, in GitHub Actions, and reports to Qase TestOps.
+A k6 performance smoke test runs against the local Docker ParaBank only.
 
 ## What is covered
 
 - **API:** registration (the form over HTTP), login, customer details and update.
 - **E2E** (Chromium, Firefox, WebKit): registration, login, Update Contact Info.
+- **Performance (k6):** smoke: register a customer and log in over REST, against the local Docker ParaBank only.
 
 Real API behaviour and the coverage plan: [`docs/parabank-api.md`](docs/parabank-api.md).
 Project structure and conventions: [`CLAUDE.md`](CLAUDE.md).
@@ -37,6 +39,7 @@ npm test               # run the tests against it
 npm run docker:logs    # follow the application logs (Ctrl+C to stop)
 npm run docker:down    # stop and remove the containers
 npm run test:host-docker  # docker:up + playwright test in one command
+npm run docker:perf    # k6 smoke in Docker (see Performance tests (k6))
 ```
 
 Extra Playwright arguments go after `--`, e.g. `npm run test:host-docker -- --project=chromium`.
@@ -92,6 +95,27 @@ the containers (`docker compose down`). The command exits with the tests' result
 The base image version in `Dockerfile` must equal the `@playwright/test` version in `package-lock.json`.
 When upgrading Playwright, bump `PLAYWRIGHT_VERSION` in `Dockerfile` too; the image build fails if they differ.
 
+## Performance tests (k6)
+
+A smoke test with [k6](https://grafana.com/docs/k6/): one virtual user registers a new customer through the
+`register.htm` form, then logs in over REST (`GET /login/...`) and checks the status and the customer id.
+The scripts are TypeScript in `performance/k6` (`smoke.ts`, `scenarios/`, `lib/`).
+
+```bash
+npm run docker:perf
+```
+
+- It runs in Docker only (the `k6` service in Compose profile `perf`, `grafana/k6` image pinned by digest), so nothing
+  is installed on the host. It starts ParaBank, runs `smoke.ts`, then removes the containers.
+- The run fails (exit code `1`) when a check or a threshold fails: 1% or more failed requests, any failed check, or
+  `p(95)` of the request duration at 1000 ms or more, overall or per request.
+- The HTML report is written to `performance/reports/k6-report.html` (git-ignored).
+- It runs only against the local Docker ParaBank, never with `ENV=demo`: `performance/k6/lib/config.ts` refuses
+  the public demo URL.
+- CI does not run the performance tests yet.
+
+Rules for the k6 code: [`CLAUDE.md`](CLAUDE.md#performance-tests-k6).
+
 ## CI
 
 [`.github/workflows/playwright-tests.yml`](.github/workflows/playwright-tests.yml) runs on pull requests to `main`, pushes to `main`
@@ -101,7 +125,7 @@ and manually from the Actions tab, with two parallel jobs:
 - **Tests** — `npm run docker:test`, the same command as locally (all projects, API tests included). The HTML report and
   test results are uploaded as the `playwright-report` artifact even when tests fail.
 
-A new push to the same branch cancels the run still in progress. The workflow has read-only repository permissions.
+The k6 performance tests are not run in CI yet. A new push to the same branch cancels the run still in progress. The workflow has read-only repository permissions.
 
 Optional configuration (Settings → Secrets and variables → Actions):
 
