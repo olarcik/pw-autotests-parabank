@@ -1,7 +1,6 @@
-import { sleep } from 'k6';
 import type { Options } from 'k6/options';
-import { registerCustomer, type PerfCustomer } from './lib/customer.ts';
-import { customerFlow } from './scenarios/customerFlow.ts';
+
+export { setup, default } from './scenarios/main.ts';
 
 // Smoke: one VU, one iteration. Checks that the scripts and the app work, not how fast they are.
 export const options: Options = {
@@ -17,15 +16,3 @@ export const options: Options = {
     checks: ['rate==1'],
   },
 };
-
-// Runs once before the iterations; the customer is passed to every VU
-export function setup(): PerfCustomer {
-  return registerCustomer();
-}
-
-export default function (customer: PerfCustomer): void {
-  customerFlow(customer);
-  // Think time. It also keeps the run long enough for the web dashboard: k6 skips the HTML report
-  // when the run gives fewer than 2 snapshots ("not enough data"), and a warm smoke lasts ~50 ms.
-  sleep(1);
-}

@@ -16,3 +16,7 @@ export const USERNAME_PREFIX = 'perf_';
 
 // Text of the page that answers a successful registration (docs/parabank-api.md, section 5)
 export const REGISTER_SUCCESS_TEXT = 'Customer Created';
+
+// Think time after each iteration, in seconds. It also keeps a smoke run long enough for the web
+// dashboard: k6 skips the HTML report when the run gives fewer than 2 snapshots.
+export const THINK_TIME_S = 1;
