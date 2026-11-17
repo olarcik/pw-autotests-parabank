@@ -16,6 +16,8 @@
     "docker:test": "docker compose --profile tests up --build --attach playwright-tests --exit-code-from playwright-tests && npm run docker:down || (npm run docker:down && exit 1)",
     "docker:perf": "docker compose --profile perf up --attach k6 --exit-code-from k6 && npm run docker:down || (npm run docker:down && exit 1)",
     "docker:perf:load": "docker compose --profile perf run --rm -e K6_WEB_DASHBOARD_EXPORT=/reports/k6-load.html -e K6_WEB_DASHBOARD_PERIOD=2s k6 run load.ts && npm run docker:down || (npm run docker:down && exit 1)",
+    "docker:perf:stress": "docker compose --profile perf run --rm -e K6_WEB_DASHBOARD_EXPORT=/reports/k6-stress.html -e K6_WEB_DASHBOARD_PERIOD=2s k6 run stress.ts && npm run docker:down || (npm run docker:down && exit 1)",
+    "docker:perf:spike": "docker compose --profile perf run --rm -e K6_WEB_DASHBOARD_EXPORT=/reports/k6-spike.html -e K6_WEB_DASHBOARD_PERIOD=2s k6 run spike.ts && npm run docker:down || (npm run docker:down && exit 1)",
     "test:host-docker": "npm run docker:up && playwright test",
     "prepare": "husky || true"
   },
