@@ -60,6 +60,7 @@ services:
 
   # k6 performance tests (performance/k6). Started only with `--profile perf`, e.g. `npm run docker:perf`.
   # Runs smoke.ts by default; another script: docker compose --profile perf run --rm k6 run <script>.ts
+  # (npm run docker:perf:load / :stress / :spike do that and set their own report file and period).
   k6:
     profiles: [perf]
     # grafana/k6:2.3.0, pinned by digest so every run uses the same build (matches @types/k6 2.3.x).

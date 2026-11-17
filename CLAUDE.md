@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-End-to-end UI/API test automation for **ParaBank** using Playwright + TypeScript. By default tests run against a local ParaBank in Docker (image `parasoft/parabank`, pinned by digest in `docker-compose.yml`). The public demo is available with `ENV=demo`, but it is a shared third-party service: don’t run the full suite against it. A k6 performance smoke test lives in `performance/` (see [Performance tests (k6)](#performance-tests-k6)).
+End-to-end UI/API test automation for **ParaBank** using Playwright + TypeScript. By default tests run against a local ParaBank in Docker (image `parasoft/parabank`, pinned by digest in `docker-compose.yml`). The public demo is available with `ENV=demo`, but it is a shared third-party service: don’t run the full suite against it. k6 performance tests (smoke, load, stress, spike) live in `performance/` (see [Performance tests (k6)](#performance-tests-k6)).
 The framework is built incrementally: folders exist up front (kept with `.gitkeep`), and code is added as tests are written.
 
 ## Commands
@@ -22,6 +22,7 @@ npm run docker:logs                        # follow ParaBank logs
 npm run docker:test                        # build the test image, run the suite in Compose, clean up
 npm run test:host-docker                   # docker:up + playwright test on the host
 npm run docker:perf                        # k6 smoke in Compose (profile perf), HTML report in performance/reports/, clean up
+npm run docker:perf:load                   # k6 load profile (same way; also :stress, :spike), report k6-<profile>.html
 ```
 
 Before committing, run `npm run lint`, `npm run typecheck` and `npm run format:check`. The Husky pre-commit hook runs all three and blocks the commit on failure — never bypass it with `--no-verify`.
@@ -56,10 +57,11 @@ src/
     └── e2e/            # E2E tests, projects chromium / firefox / webkit
 performance/
 ├── k6/                 # k6 scripts (TypeScript run by k6 itself, own tsconfig.json with @types/k6)
-│   ├── smoke.ts        # options (1 VU, 1 iteration, thresholds), setup() registers a customer, default() runs the flow
-│   ├── scenarios/      # flow logic: customerFlow.ts (REST login)
+│   ├── smoke.ts        # profiles: only options; re-export setup/default from scenarios/main.ts
+│   ├── load.ts, stress.ts, spike.ts
+│   ├── scenarios/      # main.ts (setup() registers a customer, default() runs the flow), customerFlow.ts (REST login)
 │   └── lib/            # config.ts (BASE_URL, JSON headers), data.ts (static data), customer.ts (registerCustomer)
-└── reports/            # k6 HTML report (git-ignored, kept with .gitkeep)
+└── reports/            # k6 HTML reports (git-ignored, kept with .gitkeep)
 env/                    # <ENV>.env per environment (local, demo): BASE_URL, no secrets, committed
 files/uploads/          # input files for upload tests
 files/downloads/        # download output (git-ignored)
@@ -156,13 +158,15 @@ The ones in `.env.example` are `ENV` and the three `QASE_*` below; the others ar
 
 ## Performance tests (k6)
 
-- Run only in Docker (image `grafana/k6`, pinned by digest in `docker-compose.yml`, no k6 on the host) and only against the local ParaBank: `npm run docker:perf` runs `smoke.ts` in Compose profile `perf`, then `docker:down`. Another script: `docker compose --profile perf run --rm k6 run <script>.ts` (set `-e K6_WEB_DASHBOARD_EXPORT=/reports/<name>.html` to keep its report apart). Any k6 failure (threshold breach: k6 exit 99) gives exit code 1.
+- Run only in Docker (image `grafana/k6`, pinned by digest in `docker-compose.yml`, no k6 on the host) and only against the local ParaBank: `npm run docker:perf` runs `smoke.ts` in Compose profile `perf`, then `docker:down`; `docker:perf:load`, `docker:perf:stress` and `docker:perf:spike` run the other profiles the same way (`docker compose run`). Run them manually only: not in CI, never against the demo. Another script: `docker compose --profile perf run --rm k6 run <script>.ts` (set `-e K6_WEB_DASHBOARD_EXPORT=/reports/<name>.html` to keep its report apart). Any k6 failure (threshold breach: k6 exit 99) gives exit code 1.
 - `lib/config.ts` throws if `BASE_URL` points to the public demo (`parabank.parasoft.com`). Never `ENV=demo`, never the dangerous methods (docs/parabank-api.md, section 7), never the demo customer `john`.
 - No imports from `src/`: k6 runs scripts in its own JavaScript runtime, not Node, so `src/` code (dotenv, faker, Playwright) cannot load there. k6 strips TypeScript types without checking them; imports are relative with the `.ts` extension (k6 requires it; there is no `@src` alias). `npm run typecheck` checks them with `performance/k6/tsconfig.json`; ESLint uses the same tsconfig, without Playwright rules.
 - Same data rules as the specs: static values in `lib/data.ts`, none in scenario files; usernames are unique (`perf_` prefix).
 - Every request has `tags: { name: '<METHOD> <path template>' }` without braces (`GET /login/:user/:pass`), so it can be used in threshold keys. Smoke thresholds: `http_req_failed` rate<0.01, `http_req_duration` p(95)<1000 overall and per request name, `checks` rate==1.
+- Profiles share one scenario: `scenarios/main.ts` has `setup()` (registers one customer for all VUs) and `default()`; a profile file holds only `options` (stages and thresholds as named constants) and `export { setup, default } from './scenarios/main.ts'`.
+- Profiles: smoke (above); load (10 VUs, 30s up, 1m hold, 30s down; strict: `http_req_failed` rate<0.01 and `checks` rate>0.99 with `abortOnFail`, p(95)<1000); stress (steps 10/25/50/75 VUs, 1m each, 30s down) and spike (2 → 50 → 2 VUs) with soft limits (rate<0.05, rate>0.95, p(95)<3000) and no `abortOnFail`: a red result there is information about the app, and the run finishes to show the whole curve. The numbers are starting values; ParaBank and k6 share one machine, so results are only relative.
 - No retries or loops: a failed registration (also the known server flake) fails the run.
-- The HTML report (`performance/reports/k6-report.html`) is the built-in web dashboard export (`K6_WEB_DASHBOARD_*` in `docker-compose.yml`). k6 skips it when the run gives fewer than 2 snapshots, so the smoke has a 1 s think time (`sleep(1)`) and a 100 ms period.
+- The HTML report (`performance/reports/k6-report.html`; `k6-<profile>.html` for load, stress, spike) is the built-in web dashboard export (`K6_WEB_DASHBOARD_*` in `docker-compose.yml`). k6 skips it when the run gives fewer than 2 snapshots, so the scenario has a 1 s think time (`THINK_TIME_S`) and the smoke a 100 ms period; the longer profiles override it to 2 s in their npm scripts.
 - Updating the pinned k6 image: `docker pull grafana/k6:<version>`, get the digest with `docker inspect --format "{{index .RepoDigests 0}}" grafana/k6:<version>`, replace the `image:` digest of the `k6` service, and bump `@types/k6` to the same minor version.
 
 ## Docker

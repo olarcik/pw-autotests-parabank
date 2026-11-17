@@ -97,22 +97,34 @@ When upgrading Playwright, bump `PLAYWRIGHT_VERSION` in `Dockerfile` too; the im
 
 ## Performance tests (k6)
 
-A smoke test with [k6](https://grafana.com/docs/k6/): one virtual user registers a new customer through the
-`register.htm` form, then logs in over REST (`GET /login/...`) and checks the status and the customer id.
-The scripts are TypeScript in `performance/k6` (`smoke.ts`, `scenarios/`, `lib/`).
+Performance tests with [k6](https://grafana.com/docs/k6/). All profiles share one scenario: `setup()` registers one
+customer through the `register.htm` form, then each virtual user logs in over REST (`GET /login/...`) and checks the
+status and the customer id. The scripts are TypeScript in `performance/k6` (`smoke.ts`, `load.ts`, `stress.ts`,
+`spike.ts`, `scenarios/`, `lib/`).
 
 ```bash
-npm run docker:perf
+npm run docker:perf          # smoke: 1 VU, 1 iteration
+npm run docker:perf:load     # load: 10 VUs for ~2 min
+npm run docker:perf:stress   # stress: steps 10, 25, 50, 75 VUs, ~4.5 min
+npm run docker:perf:spike    # spike: 2 VUs, jump to 50, back to 2, ~2 min
 ```
 
-- It runs in Docker only (the `k6` service in Compose profile `perf`, `grafana/k6` image pinned by digest), so nothing
-  is installed on the host. It starts ParaBank, runs `smoke.ts`, then removes the containers.
-- The run fails (exit code `1`) when a check or a threshold fails: 1% or more failed requests, any failed check, or
-  `p(95)` of the request duration at 1000 ms or more, overall or per request.
-- The HTML report is written to `performance/reports/k6-report.html` (git-ignored).
-- It runs only against the local Docker ParaBank, never with `ENV=demo`: `performance/k6/lib/config.ts` refuses
-  the public demo URL.
-- CI does not run the performance tests yet.
+| Profile | What it checks                               | Thresholds                                                                       |
+| ------- | -------------------------------------------- | -------------------------------------------------------------------------------- |
+| smoke   | the scripts and the app work                 | no failed requests or checks, `p(95)` < 1000 ms overall and per request          |
+| load    | the app stays healthy under everyday traffic | failed requests < 1%, checks > 99% (both abort the run early), `p(95)` < 1000 ms |
+| stress  | where the app starts to slow down or fail    | soft: failed requests < 5%, checks > 95%, `p(95)` < 3000 ms, never aborts        |
+| spike   | the app survives a sudden burst and recovers | same soft limits as stress, never aborts                                         |
+
+- They run in Docker only (the `k6` service in Compose profile `perf`, `grafana/k6` image pinned by digest), so nothing
+  is installed on the host. Each command starts ParaBank, runs one profile, then removes the containers.
+- The run fails (exit code `1`) when a check or a threshold fails. For stress and spike that is a finding about the
+  app, not a defect of the scripts.
+- HTML reports are written to `performance/reports/` (git-ignored): `k6-report.html` for smoke, `k6-<profile>.html`
+  for the others.
+- The numbers are starting values. ParaBank and k6 share one machine, so the results are only for comparing runs.
+- Run them manually only, against the local Docker ParaBank, never with `ENV=demo`: `performance/k6/lib/config.ts`
+  refuses the public demo URL. CI does not run the performance tests.
 
 Rules for the k6 code: [`CLAUDE.md`](CLAUDE.md#performance-tests-k6).
 
